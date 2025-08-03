@@ -11,6 +11,25 @@ wheels/
 
 # Environment variables
 .env
+.env.prod
 
 # IDE
 .idea/
+
+# Logs
+nutrition/logs/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
