@@ -13,7 +13,7 @@ logger = logging.getLogger("tests")
 
 def pytest_configure(config):
     """Хук для логирования начала сессии"""
-    logger.info("============= Test session starts =============")
+    logger.info("============== Test session starts ==============")
     db = settings.DATABASES['default']
     logger.info(f"Test DB: engine={db['ENGINE'].split('.')[-1]}, "
                 f"main_db={db['NAME']}, test_db={db['TEST'].get('NAME')}")
@@ -42,7 +42,6 @@ def _clean_tables(request):
     yield
     if "django_db" in request.keywords:
         if not os.getenv('CI'):  # Для постоянной БД
-            logger.info(f"Cleaning test DB {settings.DATABASES['default']['NAME']} after {request.node.name}")
             from django.apps import apps
             for model in apps.get_models():
                 model.objects.all().delete()
