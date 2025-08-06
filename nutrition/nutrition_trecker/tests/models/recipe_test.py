@@ -14,7 +14,7 @@ class TestRecipeModel:
             name = "My Recipe"
         )
 
-        ingr = RecipeIngredient.objects.create(
+        RecipeIngredient.objects.create(
             recipe=recipe,
             weight_grams=100,
             name = "Ingredient 1",
@@ -40,7 +40,7 @@ class TestRecipeModel:
             name = "My Recipe"
         )
 
-        ingr1 = RecipeIngredient.objects.create(
+        RecipeIngredient.objects.create(
             recipe=recipe,
             weight_grams=100,
             name = "Ingredient 1",
@@ -49,7 +49,7 @@ class TestRecipeModel:
             carbohydrates = 1
         )
 
-        ingr2 = RecipeIngredient.objects.create(
+        RecipeIngredient.objects.create(
             recipe=recipe,
             weight_grams=200,
             name = "Ingredient 2",
@@ -71,13 +71,13 @@ class TestRecipeModel:
             name = "My Recipe"
         )
 
-        ingr1 = RecipeIngredient.objects.create(
+        RecipeIngredient.objects.create(
             recipe=recipe,
             weight_grams=100,
             base_food=base_food
         )
 
-        ingr2 = RecipeIngredient.objects.create(
+        RecipeIngredient.objects.create(
             recipe=recipe,
             weight_grams=200,
             name = "Ingredient 2",
@@ -86,7 +86,7 @@ class TestRecipeModel:
             carbohydrates = 5.6
         )
 
-        ingr3 = RecipeIngredient.objects.create(
+        RecipeIngredient.objects.create(
             recipe=recipe,
             weight_grams=250,
             custom_food=custom_food

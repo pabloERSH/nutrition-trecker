@@ -1,7 +1,6 @@
-from django.db.models.signals import pre_delete, post_save
+from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from .models import EatenFood, BaseFood, CustomFood, Recipe
-from django.db import IntegrityError
 
 @receiver(pre_delete, sender=BaseFood)
 def save_base_food_data(sender, instance, **kwargs):    

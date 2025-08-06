@@ -1,5 +1,5 @@
 import pytest
-from nutrition_trecker.models import BaseFood, CustomFood, RecipeIngredient, Recipe
+from nutrition_trecker.models import BaseFood, CustomFood, Recipe
 
 
 # Fixtures
@@ -29,12 +29,3 @@ def recipe():
         user_id=1,
         name="Тестовый рецепт"
     )
-
-# @pytest.fixture
-# def ingredient(recipe, base_food):
-#     ing = RecipeIngredient.objects.create(
-#         recipe=recipe,
-#         weight_grams=200,
-#         base_food=base_food
-#     )
-#     return ing

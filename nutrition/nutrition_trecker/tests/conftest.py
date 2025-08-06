@@ -42,8 +42,7 @@ def _clean_tables(request):
     yield
     if "django_db" in request.keywords:
         if not os.getenv('CI'):  # Для постоянной БД
-            with connection.cursor() as cursor:
-                logger.info(f"Cleaning test DB {settings.DATABASES['default']['NAME']} after {request.node.name}")
-                from django.apps import apps
-                for model in apps.get_models():
-                    model.objects.all().delete()
+            logger.info(f"Cleaning test DB {settings.DATABASES['default']['NAME']} after {request.node.name}")
+            from django.apps import apps
+            for model in apps.get_models():
+                model.objects.all().delete()

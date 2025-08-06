@@ -6,5 +6,4 @@ class NutritionTreckerConfig(AppConfig):
     name = 'nutrition_trecker'
 
     def ready(self):
-        from nutrition_trecker import signals
-        from nutrition_trecker.management import commands
+        pass
