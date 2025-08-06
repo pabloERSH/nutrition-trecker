@@ -99,6 +99,9 @@ DATABASES = {
         "PASSWORD": get_env_variable("DB_PASSWORD"),
         "HOST": get_env_variable("DB_HOST"),
         "PORT": get_env_variable("DB_PORT"),
+        'TEST': {
+            'NAME': get_env_variable("TEST_DB"),
+        }
     }
 }
 
@@ -181,9 +184,17 @@ LOGGING = {
             "formatter": "verbose",
             "level": "INFO",
         },
+        "tests": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "tests.log",
+            "maxBytes": 1024 * 1024 * 1,  # 1 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+            "level": "INFO",
+        }
     },
     "loggers": {
-        "telegram_user": {
+        "nutrition_trecker": {
             "handlers": ["console", "file"],
             "level": "DEBUG" if DEBUG else "WARNING",
             "propagate": False,
@@ -193,5 +204,14 @@ LOGGING = {
             "level": "WARNING",
             "propagate": False,
         },
+        "tests": {
+            "handlers": ["tests"],
+            "level": "INFO",
+            "propagate": False,
+        }
     },
 }
+
+# Nutrition trecker
+
+MAX_EATEN_FOOD_AGE_DAYS = 90
