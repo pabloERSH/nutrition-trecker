@@ -99,9 +99,9 @@ DATABASES = {
         "PASSWORD": get_env_variable("DB_PASSWORD"),
         "HOST": get_env_variable("DB_HOST"),
         "PORT": get_env_variable("DB_PORT"),
-        'TEST': {
-            'NAME': get_env_variable("TEST_DB"),
-        }
+        "TEST": {
+            "NAME": get_env_variable("TEST_DB"),
+        },
     }
 }
 
@@ -191,7 +191,7 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
             "level": "INFO",
-        }
+        },
     },
     "loggers": {
         "nutrition_trecker": {
@@ -208,7 +208,7 @@ LOGGING = {
             "handlers": ["tests", "console"],
             "level": "INFO",
             "propagate": False,
-        }
+        },
     },
 }
 

@@ -1,1 +1,1 @@
-default_app_config = 'nutrition_trecker.apps.NutritionTreckerConfig'
+default_app_config = "nutrition_trecker.apps.NutritionTreckerConfig"
