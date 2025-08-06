@@ -205,7 +205,7 @@ LOGGING = {
             "propagate": False,
         },
         "tests": {
-            "handlers": ["tests"],
+            "handlers": ["tests", "console"],
             "level": "INFO",
             "propagate": False,
         }

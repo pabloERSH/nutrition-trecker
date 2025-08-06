@@ -276,13 +276,13 @@ class RecipeIngredient(TimeStampedModel):
     # Варианты источника
     base_food = models.ForeignKey(
         BaseFood,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
     custom_food = models.ForeignKey(
         CustomFood,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True
     )

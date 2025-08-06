@@ -140,3 +140,33 @@ class TestRecipeIngredientModel:
         assert ing.recipe == recipe
         assert ing.custom_food == custom_food
         assert ing.weight_grams == 200
+
+    def test_recipe_ingredient_pre_delete_signal_custom_food(self, custom_food, recipe):
+        ingr = RecipeIngredient.objects.create(
+            recipe = recipe,
+            custom_food=custom_food,
+            weight_grams=200
+        )
+        custom_food.delete()
+        ingr.refresh_from_db()
+
+        assert ingr.base_food == None
+        assert ingr.name == "Мой продукт"
+        assert ingr.proteins == 20.0
+        assert ingr.fats == 10.0
+        assert ingr.carbohydrates == 30.0
+
+    def test_recipe_ingredient_pre_delete_signal_base_food(self, base_food, recipe):
+        ingr = RecipeIngredient.objects.create(
+            recipe=recipe,
+            base_food=base_food,
+            weight_grams=200
+        )
+        base_food.delete()
+        ingr.refresh_from_db()
+
+        assert ingr.base_food == None
+        assert ingr.name == "Курица"
+        assert ingr.proteins == 20.0
+        assert ingr.fats == 5.0
+        assert ingr.carbohydrates == 0.0

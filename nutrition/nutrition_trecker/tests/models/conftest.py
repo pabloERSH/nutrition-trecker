@@ -1,5 +1,5 @@
 import pytest
-from nutrition_trecker.models import BaseFood, CustomFood, Recipe
+from nutrition_trecker.models import BaseFood, CustomFood, Recipe, RecipeIngredient
 
 
 # Fixtures
@@ -29,3 +29,29 @@ def recipe():
         user_id=1,
         name="Тестовый рецепт"
     )
+
+@pytest.fixture
+def recipe_with_igredients(base_food, custom_food):
+    recipe = Recipe.objects.create(
+        user_id=1,
+        name="Тестовый рецепт"
+    )
+    RecipeIngredient.objects.create(
+        recipe=recipe,
+        weight_grams=150,
+        base_food=base_food
+    )
+    RecipeIngredient.objects.create(
+        recipe=recipe,
+        weight_grams=200,
+        name="Secret Ingredient",
+        proteins=10,
+        fats=0.3,
+        carbohydrates=6
+    )
+    RecipeIngredient.objects.create(
+        recipe=recipe,
+        weight_grams=150,
+        custom_food=custom_food
+    )
+    return recipe
