@@ -81,14 +81,14 @@ class BaseFood(TimeStampedModel):
 
 class UserFavorite(models.Model):
     user_id = models.BigIntegerField(db_index=True)
-    food = models.ForeignKey(
+    base_food = models.ForeignKey(
         BaseFood, on_delete=models.CASCADE, related_name="favorited_by"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [["user_id", "food"]]
-        indexes = [models.Index(fields=["user_id"]), models.Index(fields=["food"])]
+        unique_together = [["user_id", "base_food"]]
+        indexes = [models.Index(fields=["user_id"]), models.Index(fields=["base_food"])]
 
 
 class CustomFood(TimeStampedModel):
@@ -371,6 +371,11 @@ class RecipeIngredient(TimeStampedModel):
 
     class Meta:
         verbose_name = "Ингредиент"
+        unique_together = [
+            ["recipe", "base_food"],
+            ["recipe", "name", "proteins", "fats", "carbohydrates"],
+            ["recipe", "custom_food"],
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=(
@@ -416,6 +421,21 @@ class RecipeIngredient(TimeStampedModel):
                 condition=Q(weight_grams__gte=1) & Q(weight_grams__lte=10000),
                 name="recipeingredient_weight_valid",
             ),
+            # models.UniqueConstraint(
+            #     fields=['recipe', 'base_food'],
+            #     name='unique_recipe_basefood',
+            #     condition=Q(base_food__isnull=False)
+            # ),
+            # models.UniqueConstraint(
+            #     fields=['recipe', 'custom_food'],
+            #     name='unique_recipe_customfood',
+            #     condition=Q(custom_food__isnull=False)
+            # ),
+            # models.UniqueConstraint(
+            #     fields=['recipe', 'name', 'proteins', 'fats', 'carbohydrates'],
+            #     name='unique_recipe_manual',
+            #     condition=Q(base_food__isnull=True, custom_food__isnull=True)
+            # )
         ]
 
 

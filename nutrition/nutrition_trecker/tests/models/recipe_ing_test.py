@@ -158,3 +158,12 @@ class TestRecipeIngredientModel:
         assert ingr.proteins == 20.0
         assert ingr.fats == 5.0
         assert ingr.carbohydrates == 0.0
+
+    def test_create_recipe_ingredient_not_unique(self, recipe, base_food):
+        with pytest.raises(IntegrityError), transaction.atomic():
+            RecipeIngredient.objects.create(
+                recipe=recipe, weight_grams=100, base_food=base_food
+            )
+            RecipeIngredient.objects.create(
+                recipe=recipe, weight_grams=200, base_food=base_food
+            )

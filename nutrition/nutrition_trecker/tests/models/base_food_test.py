@@ -1,5 +1,5 @@
 import pytest
-from nutrition_trecker.models import BaseFood
+from nutrition_trecker.models import BaseFood, UserFavorite
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
@@ -31,3 +31,8 @@ class TestBaseFoodModel:
     def test_calculate_kcal(self):
         food = BaseFood(name="Qwerty", proteins=10.5, fats=11, carbohydrates=12.1)
         assert food.calculate_kcal() == pytest.approx(189.4)
+
+    def test_create_user_favorite_not_unique(self, base_food):
+        with pytest.raises(IntegrityError), transaction.atomic():
+            UserFavorite.objects.create(user_id=1, base_food=base_food)
+            UserFavorite.objects.create(user_id=1, base_food=base_food)
