@@ -226,7 +226,7 @@ class Recipe(TimeStampedModel):
             {
                 'type': 'base',
                 'name': 'Куриная грудка',
-                'weight': 200,
+                'weight_grams': 200,
                 'proteins': 22.0,
                 'fats': 2.5,
                 'carbohydrates': 0.0
@@ -237,7 +237,7 @@ class Recipe(TimeStampedModel):
         ingredients = []
         for ing in self.ingredients.select_related("base_food", "custom_food").all():
             ingredient_data = {
-                "weight": ing.weight_grams,
+                "weight_grams": ing.weight_grams,
                 "proteins": None,
                 "fats": None,
                 "carbohydrates": None,

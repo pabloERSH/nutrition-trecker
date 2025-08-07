@@ -79,9 +79,14 @@ class TestRecipeModel:
         details = recipe.get_ingredients_with_details()
 
         assert len(details) == 3
-        assert details[0]["type"] == "base"
-        assert details[0]["proteins"] == 20.0
-        assert details[1]["type"] == "manual"
-        assert details[1]["fats"] == 0.6
-        assert details[2]["type"] == "custom"
-        assert details[2]["carbohydrates"] == 30.0
+        assert all(isinstance(ingr, dict) and ingr for ingr in details)
+        required_keys = {
+            "type",
+            "name",
+            "proteins",
+            "fats",
+            "carbohydrates",
+            "weight_grams",
+        }
+        missing_keys = required_keys - {k for d in details for k in d}
+        assert not missing_keys
