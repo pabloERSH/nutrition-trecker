@@ -59,6 +59,9 @@ class BaseFood(TimeStampedModel):
         ]
 
     def clean(self):
+        if self.name is None:
+            raise ValidationError("Для базового продукта укажите название.")
+
         if None in [self.proteins, self.fats, self.carbohydrates]:
             raise ValidationError("Для базового продукта укажите все значения БЖУ.")
 
@@ -129,6 +132,14 @@ class CustomFood(TimeStampedModel):
         ]
 
     def clean(self):
+        if self.user_id is None:
+            raise ValidationError(
+                "Кастомный продукт должен иметь связь с пользователем, который его создал."
+            )
+
+        if self.custom_name is None:
+            raise ValidationError("Для кастомного продукта укажите название.")
+
         if None in [self.proteins, self.fats, self.carbohydrates]:
             raise ValidationError("Для кастомного продукта укажите все значения БЖУ.")
 
@@ -157,8 +168,16 @@ class Recipe(TimeStampedModel):
         verbose_name_plural = "Рецепты"
 
     def clean(self):
-        if not self.ingredients.exists() and self.pk:
-            raise ValidationError("Рецепт не может быть без ингредиентов!")
+        if self.user_id is None:
+            raise ValidationError(
+                "Рецепт должен иметь связь с пользователем, который его создал."
+            )
+
+        if self.name is None:
+            raise ValidationError("Для рецепта укажите название.")
+
+        # if not self.ingredients.exists() and self.pk:
+        #     raise ValidationError("Рецепт не может быть без ингредиентов!")
 
     def calculate_nutrition_per_100g(self) -> dict:
         """

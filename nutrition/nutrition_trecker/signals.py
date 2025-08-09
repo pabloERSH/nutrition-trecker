@@ -8,7 +8,7 @@ logger = logging.getLogger("nutrition_trecker")
 
 
 @receiver(pre_delete, sender=BaseFood)
-def eaten_food_save_base_food_data(sender, instance, **kwargs):
+def update_eaten_food_on_base_food_delete(sender, instance, **kwargs):
     """Сохранение данных перед удалёнием продукта из BaseFood в связанных с ним записях в EatenFood"""
     rows = EatenFood.objects.filter(base_food=instance)
     if rows.exists():
@@ -25,7 +25,7 @@ def eaten_food_save_base_food_data(sender, instance, **kwargs):
 
 
 @receiver(pre_delete, sender=CustomFood)
-def eaten_food_save_custom_food_data(sender, instance, **kwargs):
+def update_eaten_food_on_custom_food_delete(sender, instance, **kwargs):
     """Сохранение данных перед удалёнием продукта из CustomFood в связанных с ним записях в EatenFood"""
     rows = EatenFood.objects.filter(custom_food=instance)
     if rows.exists():
@@ -42,7 +42,7 @@ def eaten_food_save_custom_food_data(sender, instance, **kwargs):
 
 
 @receiver(pre_delete, sender=Recipe)
-def eaten_food_save_recipe_data(sender, instance, **kwargs):
+def update_eaten_food_on_recipe_food_delete(sender, instance, **kwargs):
     """Сохранение данных перед удалёнием блюда из Recipe в связанных с ним записях в EatenFood"""
     rows = EatenFood.objects.filter(recipe_food=instance)
     if rows.exists():
@@ -60,7 +60,7 @@ def eaten_food_save_recipe_data(sender, instance, **kwargs):
 
 
 @receiver(pre_delete, sender=BaseFood)
-def recipe_ingredient_save_base_food_data(sender, instance, **kwargs):
+def update_recipe_ingredients_on_base_food_delete(sender, instance, **kwargs):
     """Сохранение данных перед удалёнием блюда из BaseFood в связанных с ним записях в RecipeIngredient"""
     rows = RecipeIngredient.objects.filter(base_food=instance)
     if rows.exists():
@@ -77,7 +77,7 @@ def recipe_ingredient_save_base_food_data(sender, instance, **kwargs):
 
 
 @receiver(pre_delete, sender=CustomFood)
-def recipe_ingredient_save_custom_food_data(sender, instance, **kwargs):
+def update_recipe_ingredients_on_custom_food_delete(sender, instance, **kwargs):
     """Сохранение данных перед удалёнием блюда из BaseFood в связанных с ним записях в RecipeIngredient"""
     rows = RecipeIngredient.objects.filter(custom_food=instance)
     if rows.exists():
