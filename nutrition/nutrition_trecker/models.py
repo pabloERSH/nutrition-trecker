@@ -59,12 +59,6 @@ class BaseFood(TimeStampedModel):
         ]
 
     def clean(self):
-        if self.name is None:
-            raise ValidationError("Для базового продукта укажите название.")
-
-        if None in [self.proteins, self.fats, self.carbohydrates]:
-            raise ValidationError("Для базового продукта укажите все значения БЖУ.")
-
         if self.proteins + self.fats + self.carbohydrates > 100:
             raise ValidationError(
                 "Сумма БЖУ не может превышать 100 г на 100 г продукта."
@@ -90,7 +84,12 @@ class UserFavorite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [["user_id", "base_food"]]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "base_food"],
+                name="unique_favorite_basefood_for_user",
+            )
+        ]
         indexes = [models.Index(fields=["user_id"]), models.Index(fields=["base_food"])]
 
 
@@ -132,17 +131,6 @@ class CustomFood(TimeStampedModel):
         ]
 
     def clean(self):
-        if self.user_id is None:
-            raise ValidationError(
-                "Кастомный продукт должен иметь связь с пользователем, который его создал."
-            )
-
-        if self.custom_name is None:
-            raise ValidationError("Для кастомного продукта укажите название.")
-
-        if None in [self.proteins, self.fats, self.carbohydrates]:
-            raise ValidationError("Для кастомного продукта укажите все значения БЖУ.")
-
         if (self.proteins + self.fats + self.carbohydrates) > 100:
             raise ValidationError(
                 "Сумма БЖУ не может превышать 100 г на 100 г продукта."
@@ -166,18 +154,6 @@ class Recipe(TimeStampedModel):
     class Meta:
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
-
-    def clean(self):
-        if self.user_id is None:
-            raise ValidationError(
-                "Рецепт должен иметь связь с пользователем, который его создал."
-            )
-
-        if self.name is None:
-            raise ValidationError("Для рецепта укажите название.")
-
-        # if not self.ingredients.exists() and self.pk:
-        #     raise ValidationError("Рецепт не может быть без ингредиентов!")
 
     def calculate_nutrition_per_100g(self) -> dict:
         """
@@ -359,19 +335,19 @@ class RecipeIngredient(TimeStampedModel):
 
         if sources_count != 1:
             raise ValidationError(
-                "Должен быть выбран ровно один источник данных: base_food, custom_food или ручной ввод"
+                "Должен быть выбран ровно один источник данных: base_food, custom_food или ручной ввод."
             )
 
         # Проверка для ручного ввода
         if self.base_food is None and self.custom_food is None:
             if None in [self.name, self.proteins, self.fats, self.carbohydrates]:
                 raise ValidationError(
-                    "Для ручного ввода необходимо указать название и все значения БЖУ"
+                    "Для ручного ввода необходимо указать название и все значения БЖУ."
                 )
 
             if (self.proteins + self.fats + self.carbohydrates) > 100:
                 raise ValidationError(
-                    "Сумма БЖУ не может превышать 100 г на 100 г продукта"
+                    "Сумма БЖУ не может превышать 100 г на 100 г продукта."
                 )
 
         # Проверка, что для base_food/custom_food не указаны ручные значения
@@ -385,16 +361,11 @@ class RecipeIngredient(TimeStampedModel):
                 ]
             ):
                 raise ValidationError(
-                    "При выборе base_food или custom_food нельзя указывать ручные значения БЖУ"
+                    "При выборе base_food или custom_food нельзя указывать ручные значения БЖУ."
                 )
 
     class Meta:
         verbose_name = "Ингредиент"
-        unique_together = [
-            ["recipe", "base_food"],
-            ["recipe", "name", "proteins", "fats", "carbohydrates"],
-            ["recipe", "custom_food"],
-        ]
         constraints = [
             models.CheckConstraint(
                 condition=(
@@ -440,21 +411,21 @@ class RecipeIngredient(TimeStampedModel):
                 condition=Q(weight_grams__gte=1) & Q(weight_grams__lte=10000),
                 name="recipeingredient_weight_valid",
             ),
-            # models.UniqueConstraint(
-            #     fields=['recipe', 'base_food'],
-            #     name='unique_recipe_basefood',
-            #     condition=Q(base_food__isnull=False)
-            # ),
-            # models.UniqueConstraint(
-            #     fields=['recipe', 'custom_food'],
-            #     name='unique_recipe_customfood',
-            #     condition=Q(custom_food__isnull=False)
-            # ),
-            # models.UniqueConstraint(
-            #     fields=['recipe', 'name', 'proteins', 'fats', 'carbohydrates'],
-            #     name='unique_recipe_manual',
-            #     condition=Q(base_food__isnull=True, custom_food__isnull=True)
-            # )
+            models.UniqueConstraint(
+                fields=["recipe", "base_food"],
+                name="unique_recipe_ingredient_basefood",
+                condition=Q(base_food__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["recipe", "custom_food"],
+                name="unique_recipe_ingredient_customfood",
+                condition=Q(custom_food__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["recipe", "name", "proteins", "fats", "carbohydrates"],
+                name="unique_recipe_ingredient_manual",
+                condition=Q(base_food__isnull=True, custom_food__isnull=True),
+            ),
         ]
 
 
@@ -580,7 +551,7 @@ class EatenFood(TimeStampedModel):
             )
 
         if self.eaten_at > now:
-            raise ValidationError("Дата приёма пищи не может быть в будущем")
+            raise ValidationError("Дата приёма пищи не может быть в будущем.")
 
         # Проверяем, что выбран ровно один источник данных
         sources_count = sum(
@@ -597,7 +568,7 @@ class EatenFood(TimeStampedModel):
 
         if sources_count != 1:
             raise ValidationError(
-                "Должен быть выбран ровно один источник данных: base_food, custom_food, recipe_food или ручной ввод"
+                "Должен быть выбран ровно один источник данных: base_food, custom_food, recipe_food или ручной ввод."
             )
 
         # Проверка для ручного ввода
@@ -606,12 +577,12 @@ class EatenFood(TimeStampedModel):
         ):
             if None in [self.name, self.proteins, self.fats, self.carbohydrates]:
                 raise ValidationError(
-                    "Для ручного ввода необходимо указать название и все значения БЖУ"
+                    "Для ручного ввода необходимо указать название и все значения БЖУ."
                 )
 
             if (self.proteins + self.fats + self.carbohydrates) > 100:
                 raise ValidationError(
-                    "Сумма БЖУ не может превышать 100 г на 100 г продукта"
+                    "Сумма БЖУ не может превышать 100 г на 100 г продукта."
                 )
 
         # Проверка, что для base_food/custom_food не указаны ручные значения
@@ -631,8 +602,13 @@ class EatenFood(TimeStampedModel):
                 ]
             ):
                 raise ValidationError(
-                    "При выборе base_food, custom_food или recipe_food нельзя указывать ручные значения БЖУ"
+                    "При выборе base_food, custom_food или recipe_food нельзя указывать ручные значения БЖУ."
                 )
+
+        if self.recipe_food is not None and not self.recipe_food.ingredients.exists():
+            raise ValidationError(
+                "При выборе recipe_food нельзя выбирать рецепт без ингредиентов."
+            )
 
     def calculate_total_kcal(self) -> float:
         """Расчёт калорий для указанного веса."""

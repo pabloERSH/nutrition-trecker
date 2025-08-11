@@ -25,7 +25,7 @@ class TestCustomFoodModel:
         )
         assert food.calculate_kcal() == pytest.approx(189.4)
 
-    def test_create_customfood_invalid_nutrition_clean(self):
+    def test_create_customfood_invalid_nutrition_full_clean(self):
         with pytest.raises(ValidationError):
             food = CustomFood(
                 user_id=3, custom_name="Qwerty", proteins=35, fats=35, carbohydrates=35

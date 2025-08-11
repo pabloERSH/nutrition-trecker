@@ -81,7 +81,7 @@ class TestRecipeIngredientModel:
                 weight_grams=-100,
             )
 
-    def test_clean_recipe_ingredient_manual_sum_over_100(self, recipe):
+    def test_full_clean_recipe_ingredient_manual_sum_over_100(self, recipe):
         with pytest.raises(ValidationError):
             ing = RecipeIngredient(
                 recipe=recipe,
@@ -93,14 +93,14 @@ class TestRecipeIngredientModel:
             )
             ing.full_clean()
 
-    def test_clean_recipe_ingredient_manual_without_proteins(self, recipe):
+    def test_full_clean_recipe_ingredient_manual_without_proteins(self, recipe):
         with pytest.raises(ValidationError):
             ing = RecipeIngredient(
                 recipe=recipe, name="Qwerty", fats=1, carbohydrates=1, weight_grams=200
             )
             ing.full_clean()
 
-    def test_clean_recipe_ingredient_manual_with_invalid_source(
+    def test_full_clean_recipe_ingredient_manual_with_invalid_source(
         self, recipe, base_food
     ):
         with pytest.raises(ValidationError):

@@ -71,7 +71,7 @@ class TestEatenFoodModel:
                 user_id=1, name="Qwerty", proteins=1, carbohydrates=1, weight_grams=-100
             )
 
-    def test_clean_eatenfood_manual_sum_over_100(self):
+    def test_full_clean_eatenfood_manual_sum_over_100(self):
         with pytest.raises(ValidationError):
             eaten_food = EatenFood(
                 user_id=1,
@@ -83,14 +83,14 @@ class TestEatenFoodModel:
             )
             eaten_food.full_clean()
 
-    def test_clean_eatenfood_manual_without_proteins(self):
+    def test_full_clean_eatenfood_manual_without_proteins(self):
         with pytest.raises(ValidationError):
             eaten_food = EatenFood(
                 user_id=1, name="Qwerty", fats=1, carbohydrates=1, weight_grams=200
             )
             eaten_food.full_clean()
 
-    def test_clean_eatenfood_manual_with_invalid_source(self, base_food):
+    def test_full_clean_eatenfood_manual_with_invalid_source(self, base_food):
         with pytest.raises(ValidationError):
             eaten_food = EatenFood(
                 user_id=1,
@@ -99,6 +99,15 @@ class TestEatenFoodModel:
                 proteins=1,
                 fats=1,
                 carbohydrates=1,
+                weight_grams=200,
+            )
+            eaten_food.full_clean()
+
+    def test_full_clean_eatenfood_recipe_without_ingredients(self, recipe):
+        with pytest.raises(ValidationError):
+            eaten_food = EatenFood(
+                user_id=1,
+                recipe_food=recipe,
                 weight_grams=200,
             )
             eaten_food.full_clean()

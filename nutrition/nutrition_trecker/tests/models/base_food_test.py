@@ -17,7 +17,7 @@ class TestBaseFoodModel:
         assert food.fats == 0.4
         assert food.carbohydrates == 11.8
 
-    def test_create_basefood_invalid_nutrition_clean(self):
+    def test_create_basefood_invalid_nutrition_full_clean(self):
         with pytest.raises(ValidationError):
             food = BaseFood(name="Qwerty", proteins=35, fats=35, carbohydrates=35)
             food.full_clean()

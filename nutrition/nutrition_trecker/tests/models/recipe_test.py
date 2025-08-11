@@ -1,6 +1,5 @@
 import pytest
 from nutrition_trecker.models import Recipe, RecipeIngredient
-from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 
@@ -8,7 +7,7 @@ from decimal import Decimal
 class TestRecipeModel:
     """Класс для тестирования модели Recipe"""
 
-    def test_create_recipe_success_clean(self):
+    def test_create_recipe_success_full_clean(self):
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
 
         RecipeIngredient.objects.create(
@@ -21,12 +20,6 @@ class TestRecipeModel:
         )
 
         recipe.full_clean()
-
-    def test_create_recipe_without_ingr_clean(self):
-        with pytest.raises(ValidationError):
-            recipe = Recipe.objects.create(user_id=1, name="My Recipe")
-
-            recipe.full_clean()
 
     def test_recipe_calculate_nutrition_per_100g(self):
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
