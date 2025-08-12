@@ -17,6 +17,7 @@ def update_eaten_food_on_base_food_delete(sender, instance, **kwargs):
             proteins=instance.proteins,
             fats=instance.fats,
             carbohydrates=instance.carbohydrates,
+            kcal=instance.kcal,
             base_food=None,
         )
         logger.info(
@@ -34,6 +35,7 @@ def update_eaten_food_on_custom_food_delete(sender, instance, **kwargs):
             proteins=instance.proteins,
             fats=instance.fats,
             carbohydrates=instance.carbohydrates,
+            kcal=instance.kcal,
             custom_food=None,
         )
         logger.info(
@@ -52,6 +54,7 @@ def update_eaten_food_on_recipe_food_delete(sender, instance, **kwargs):
             proteins=nutrition["proteins"],
             fats=nutrition["fats"],
             carbohydrates=nutrition["carbohydrates"],
+            kcal=nutrition["kcal"],
             recipe_food=None,
         )
         logger.info(
@@ -69,6 +72,7 @@ def update_recipe_ingredients_on_base_food_delete(sender, instance, **kwargs):
             proteins=instance.proteins,
             fats=instance.fats,
             carbohydrates=instance.carbohydrates,
+            kcal=instance.kcal,
             base_food=None,
         )
         logger.info(
@@ -86,6 +90,7 @@ def update_recipe_ingredients_on_custom_food_delete(sender, instance, **kwargs):
             proteins=instance.proteins,
             fats=instance.fats,
             carbohydrates=instance.carbohydrates,
+            kcal=instance.kcal,
             custom_food=None,
         )
         logger.info(

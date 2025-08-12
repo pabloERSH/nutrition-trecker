@@ -20,6 +20,9 @@ class TestRecipeIngredientModel:
 
         assert ing.recipe == recipe
         assert ing.proteins == 10
+        assert ing.fats == 10
+        assert ing.carbohydrates == 10
+        assert ing.kcal == pytest.approx(340)
         assert ing.weight_grams == 200
 
     def test_create_recipe_ingredient_manual_sum_over_100(self, recipe):

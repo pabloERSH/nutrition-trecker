@@ -16,6 +16,7 @@ class TestBaseFoodModel:
         assert food.proteins == 0.4
         assert food.fats == 0.4
         assert food.carbohydrates == 11.8
+        assert food.kcal == pytest.approx(52.4)
 
     def test_create_basefood_invalid_nutrition_full_clean(self):
         with pytest.raises(ValidationError):

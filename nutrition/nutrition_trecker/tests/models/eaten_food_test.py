@@ -22,6 +22,9 @@ class TestEatenFoodModel:
         )
 
         assert eaten_food.proteins == 10
+        assert eaten_food.fats == 10
+        assert eaten_food.carbohydrates == 10
+        assert eaten_food.kcal == pytest.approx(340)
         assert eaten_food.weight_grams == 200
 
     def test_create_eatenfood_manual_sum_over_100(self):

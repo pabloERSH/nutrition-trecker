@@ -18,6 +18,7 @@ class TestCustomFoodModel:
         assert food.proteins == 10.5
         assert food.fats == 11
         assert food.carbohydrates == 12.1
+        assert food.kcal == pytest.approx(189.4)
 
     def test_calculate_kcal(self):
         food = CustomFood(

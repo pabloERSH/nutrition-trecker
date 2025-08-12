@@ -6,6 +6,8 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 
 
 class JWTAuthTgUser(BaseAuthentication):
+    """Класс для проверки JWT токена и аутентификации пользователя."""
+
     def authenticate(self, request):
         auth_header = request.headers.get("Authorization")
         if not auth_header:

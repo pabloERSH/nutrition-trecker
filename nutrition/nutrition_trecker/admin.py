@@ -4,5 +4,6 @@ from .models import BaseFood
 
 @admin.register(BaseFood)
 class BaseFoodAdmin(admin.ModelAdmin):
-    list_display = ("name", "proteins", "fats", "carbohydrates")
+    readonly_fields = ("kcal",)
+    list_display = ("id", "proteins", "fats", "carbohydrates", "kcal")
     search_fields = ("name",)
