@@ -173,16 +173,16 @@ class Recipe(TimeStampedModel):
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
 
-    def calculate_nutrition_per_100g(self) -> dict:
+    def calculate_nutrition(self) -> dict:
         """
-        Возвращает средние БЖУ и калории на 100 г рецепта.
-        Пример вывода: {'proteins': 15.2, 'fats': 8.5, 'carbohydrates': 20.1, 'kcal': 210.3}
+        Возвращает суммарное и средние на 100 г БЖУ и калории для рецепта.
         """
         total = {
             "weight": 0.0,
             "proteins": 0.0,
             "fats": 0.0,
             "carbohydrates": 0.0,
+            "kcal": 0.0,
         }
 
         ingredients = self.ingredients.select_related("base_food", "custom_food")
@@ -195,6 +195,7 @@ class Recipe(TimeStampedModel):
             total["proteins"] += nutrition["proteins"]
             total["fats"] += nutrition["fats"]
             total["carbohydrates"] += nutrition["carbohydrates"]
+            total["kcal"] += nutrition["kcal"]
 
         # Нормируем на 100 г (если вес рецепта > 0)
         if total["weight"] == 0:
@@ -206,7 +207,16 @@ class Recipe(TimeStampedModel):
                 "kcal": 0.0,
             }
 
-        return {
+        result = {
+            "total_weight": round(total["weight"], 1),
+            "total": {
+                "proteins": round(total["proteins"], 1),
+                "fats": round(total["fats"], 1),
+                "carbohydrates": round(total["carbohydrates"], 1),
+                "kcal": round(total["kcal"], 1),
+            },
+        }
+        result["per_100g"] = {
             "proteins": round(total["proteins"] * 100 / total["weight"], 1),
             "fats": round(total["fats"] * 100 / total["weight"], 1),
             "carbohydrates": round(total["carbohydrates"] * 100 / total["weight"], 1),
@@ -217,6 +227,8 @@ class Recipe(TimeStampedModel):
                 1,
             ),
         }
+
+        return result
 
     def get_ingredients_with_details(self) -> list:
         """
@@ -444,25 +456,30 @@ class RecipeIngredient(TimeStampedModel):
 
     def get_nutrition(self) -> dict:
         """Возвращает полную информацию о нутриентах"""
+        nutrition = {"kcal": float(self.calculate_total_kcal())}
         coeff = self.weight_grams / 100
         if self.base_food:
             source = self.base_food
         elif self.custom_food:
             source = self.custom_food
         else:
-            return {
-                "proteins": round(float(self.proteins) * coeff, 1),
-                "fats": round(float(self.fats) * coeff, 1),
-                "carbohydrates": round(float(self.carbohydrates) * coeff, 1),
-                "kcal": round(float(self.kcal) * coeff, 1),
-            }
+            nutrition.update(
+                {
+                    "proteins": round(float(self.proteins) * coeff, 1),
+                    "fats": round(float(self.fats) * coeff, 1),
+                    "carbohydrates": round(float(self.carbohydrates) * coeff, 1),
+                }
+            )
+            return nutrition
 
-        return {
-            "proteins": round(float(source.proteins) * coeff, 1),
-            "fats": round(float(source.fats) * coeff, 1),
-            "carbohydrates": round(float(source.carbohydrates) * coeff, 1),
-            "kcal": round(float(source.kcal) * coeff, 1),
-        }
+        nutrition.update(
+            {
+                "proteins": round(float(source.proteins) * coeff, 1),
+                "fats": round(float(source.fats) * coeff, 1),
+                "carbohydrates": round(float(source.carbohydrates) * coeff, 1),
+            }
+        )
+        return nutrition
 
     def get_name(self):
         if self.base_food:
@@ -690,33 +707,40 @@ class EatenFood(TimeStampedModel):
 
     def get_nutrition(self) -> dict:
         """Возвращает полную информацию о нутриентах"""
+        nutrition = {"kcal": float(self.calculate_total_kcal())}
         coeff = self.weight_grams / 100
         if self.base_food:
             source = self.base_food
         elif self.custom_food:
             source = self.custom_food
         elif self.recipe_food:
-            source = self.recipe_food.calculate_nutrition_per_100g()
-            return {
-                "proteins": round(source["proteins"] * coeff, 1),
-                "fats": round(source["fats"] * coeff, 1),
-                "carbohydrates": round(source["carbohydrates"] * coeff, 1),
-                "kcal": round(source["kcal"] * coeff, 1),
-            }
+            source = self.recipe_food.calculate_nutrition()["per_100g"]
+            nutrition.update(
+                {
+                    "proteins": round(source["proteins"] * coeff, 1),
+                    "fats": round(source["fats"] * coeff, 1),
+                    "carbohydrates": round(source["carbohydrates"] * coeff, 1),
+                }
+            )
+            return nutrition
         else:
-            return {
-                "proteins": round(float(self.proteins) * coeff, 1),
-                "fats": round(float(self.fats) * coeff, 1),
-                "carbohydrates": round(float(self.carbohydrates) * coeff, 1),
-                "kcal": round(float(self.kcal) * coeff, 1),
-            }
+            nutrition.update(
+                {
+                    "proteins": round(float(self.proteins) * coeff, 1),
+                    "fats": round(float(self.fats) * coeff, 1),
+                    "carbohydrates": round(float(self.carbohydrates) * coeff, 1),
+                }
+            )
+            return nutrition
 
-        return {
-            "proteins": round(float(source.proteins) * coeff, 1),
-            "fats": round(float(source.fats) * coeff, 1),
-            "carbohydrates": round(float(source.carbohydrates) * coeff, 1),
-            "kcal": round(float(source.kcal) * coeff, 1),
-        }
+        nutrition.update(
+            {
+                "proteins": round(float(source.proteins) * coeff, 1),
+                "fats": round(float(source.fats) * coeff, 1),
+                "carbohydrates": round(float(source.carbohydrates) * coeff, 1),
+            }
+        )
+        return nutrition
 
     def get_name(self):
         if self.base_food:

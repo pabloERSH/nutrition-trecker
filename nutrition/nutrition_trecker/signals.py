@@ -48,7 +48,7 @@ def update_eaten_food_on_recipe_food_delete(sender, instance, **kwargs):
     """Сохранение данных перед удалёнием блюда из Recipe в связанных с ним записях в EatenFood"""
     rows = EatenFood.objects.filter(recipe_food=instance)
     if rows.exists():
-        nutrition = instance.calculate_nutrition_per_100g()
+        nutrition = instance.calculate_nutrition()["per_100g"]
         rows.update(
             name=instance.name,
             proteins=nutrition["proteins"],

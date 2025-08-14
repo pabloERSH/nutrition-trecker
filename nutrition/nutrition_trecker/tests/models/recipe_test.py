@@ -21,7 +21,7 @@ class TestRecipeModel:
 
         recipe.full_clean()
 
-    def test_recipe_calculate_nutrition_per_100g(self):
+    def test_recipe_calculate_nutrition(self):
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
 
         RecipeIngredient.objects.create(
@@ -44,12 +44,19 @@ class TestRecipeModel:
             carbohydrates=5.6,
         )
 
-        nutrition = recipe.calculate_nutrition_per_100g()
+        nutrition = recipe.calculate_nutrition()
 
-        assert nutrition["proteins"] == 2.0
-        assert nutrition["fats"] == 0.7
-        assert nutrition["carbohydrates"] == 4.1
-        assert nutrition["kcal"] == 30.9
+        assert nutrition["total_weight"] == 300
+
+        assert nutrition["per_100g"]["proteins"] == 2.0
+        assert nutrition["per_100g"]["fats"] == 0.7
+        assert nutrition["per_100g"]["carbohydrates"] == 4.1
+        assert nutrition["per_100g"]["kcal"] == 30.9
+
+        assert nutrition["total"]["proteins"] == 6.0
+        assert nutrition["total"]["fats"] == 2.2
+        assert nutrition["total"]["carbohydrates"] == 12.2
+        assert nutrition["total"]["kcal"] == 92.6
 
     def test_recipe_get_ingredients_with_details(self, base_food, custom_food):
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
