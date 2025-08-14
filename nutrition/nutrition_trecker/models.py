@@ -85,6 +85,8 @@ class BaseFood(TimeStampedModel):
 
 
 class UserFavorite(models.Model):
+    """Модель хранит добавленные в избранное пользователями продукты из модели BaseFood"""
+
     user_id = models.BigIntegerField(db_index=True)
     base_food = models.ForeignKey(
         BaseFood, on_delete=models.CASCADE, related_name="favorited_by"
@@ -176,46 +178,32 @@ class Recipe(TimeStampedModel):
         Возвращает средние БЖУ и калории на 100 г рецепта.
         Пример вывода: {'proteins': 15.2, 'fats': 8.5, 'carbohydrates': 20.1, 'kcal': 210.3}
         """
-        from decimal import Decimal
-
         total = {
-            "weight": 0,
-            "proteins": Decimal("0"),
-            "fats": Decimal("0"),
-            "carbohydrates": Decimal("0"),
+            "weight": 0.0,
+            "proteins": 0.0,
+            "fats": 0.0,
+            "carbohydrates": 0.0,
         }
 
-        ingredients = self.ingredients.select_related("base_food", "custom_food").all()
+        ingredients = self.ingredients.select_related("base_food", "custom_food")
 
         for ing in ingredients:
             total["weight"] += ing.weight_grams  # Суммируем вес
 
-            # Расчёт нутриентов в зависимости от типа ингредиента
-            if ing.base_food:  # Базовый продукт
-                food = ing.base_food
-                total["proteins"] += food.proteins * ing.weight_grams / 100
-                total["fats"] += food.fats * ing.weight_grams / 100
-                total["carbohydrates"] += food.carbohydrates * ing.weight_grams / 100
+            nutrition = ing.get_nutrition()
 
-            elif ing.custom_food:  # Пользовательский продукт
-                food = ing.custom_food
-                total["proteins"] += food.proteins * ing.weight_grams / 100
-                total["fats"] += food.fats * ing.weight_grams / 100
-                total["carbohydrates"] += food.carbohydrates * ing.weight_grams / 100
-
-            else:  # Ручной ввод
-                total["proteins"] += ing.proteins * ing.weight_grams / 100
-                total["fats"] += ing.fats * ing.weight_grams / 100
-                total["carbohydrates"] += ing.carbohydrates * ing.weight_grams / 100
+            total["proteins"] += nutrition["proteins"]
+            total["fats"] += nutrition["fats"]
+            total["carbohydrates"] += nutrition["carbohydrates"]
 
         # Нормируем на 100 г (если вес рецепта > 0)
         if total["weight"] == 0:
             return {
-                "weight": 0,
-                "proteins": Decimal("0"),
-                "fats": Decimal("0"),
-                "carbohydrates": Decimal("0"),
-                "kcal": 0,
+                "weight": 0.0,
+                "proteins": 0.0,
+                "fats": 0.0,
+                "carbohydrates": 0.0,
+                "kcal": 0.0,
             }
 
         return {
@@ -239,8 +227,8 @@ class Recipe(TimeStampedModel):
                 'type': 'base',
                 'name': 'Куриная грудка',
                 'weight_grams': 200,
-                'proteins': 22.0,
-                'fats': 2.5,
+                'proteins': 44.0,
+                'fats': 5.0,
                 'carbohydrates': 0.0,
                 'kcal': 221.0
             },
@@ -248,48 +236,18 @@ class Recipe(TimeStampedModel):
         ]
         """
         ingredients = []
-        for ing in self.ingredients.select_related("base_food", "custom_food").all():
-            ingredient_data = {
-                "weight_grams": ing.weight_grams,
-                "proteins": None,
-                "fats": None,
-                "carbohydrates": None,
-                "kcal": None,
-            }
+        for ing in self.ingredients.select_related("base_food", "custom_food"):
+            nutrition = ing.get_nutrition()
 
-            if ing.base_food:
-                ingredient_data.update(
-                    {
-                        "type": "base",
-                        "name": ing.base_food.name,
-                        "proteins": float(ing.base_food.proteins),
-                        "fats": float(ing.base_food.fats),
-                        "carbohydrates": float(ing.base_food.carbohydrates),
-                        "kcal": float(ing.calculate_total_kcal()),
-                    }
-                )
-            elif ing.custom_food:
-                ingredient_data.update(
-                    {
-                        "type": "custom",
-                        "name": ing.custom_food.custom_name,
-                        "proteins": float(ing.custom_food.proteins),
-                        "fats": float(ing.custom_food.fats),
-                        "carbohydrates": float(ing.custom_food.carbohydrates),
-                        "kcal": float(ing.calculate_total_kcal()),
-                    }
-                )
-            else:
-                ingredient_data.update(
-                    {
-                        "type": "manual",
-                        "name": ing.name,
-                        "proteins": float(ing.proteins),
-                        "fats": float(ing.fats),
-                        "carbohydrates": float(ing.carbohydrates),
-                        "kcal": float(ing.kcal),
-                    }
-                )
+            ingredient_data = {
+                "type": ing.get_type(),
+                "name": ing.get_name(),
+                "weight_grams": ing.weight_grams,
+                "proteins": nutrition["proteins"],
+                "fats": nutrition["fats"],
+                "carbohydrates": nutrition["carbohydrates"],
+                "kcal": nutrition["kcal"],
+            }
 
             ingredients.append(ingredient_data)
         return ingredients
@@ -299,6 +257,7 @@ class Recipe(TimeStampedModel):
 
 
 class RecipeIngredient(TimeStampedModel):
+    user_id = models.BigIntegerField(db_index=True, verbose_name="Пользователь")
     recipe = models.ForeignKey(
         Recipe,
         db_index=True,
@@ -318,7 +277,7 @@ class RecipeIngredient(TimeStampedModel):
         CustomFood, on_delete=models.SET_NULL, null=True, blank=True
     )
 
-    # Ручной ввод
+    # Поля для разового ввода информации о нутриентах на 100гр
     name = models.CharField(max_length=255, null=True, blank=True)
     proteins = models.DecimalField(
         max_digits=4,
@@ -350,6 +309,12 @@ class RecipeIngredient(TimeStampedModel):
     )
 
     def clean(self):
+        # Проверяем, что ингредиент создан пользователем, который создал рецепт
+        if self.user_id != self.recipe.user_id:
+            raise ValidationError(
+                "Ингредиент для рецепта может быть создан только пользователем, создавшим рецепт"
+            )
+
         # Проверяем, что выбран ровно один источник данных
         sources_count = sum(
             [
@@ -441,17 +406,24 @@ class RecipeIngredient(TimeStampedModel):
                 name="recipeingredient_weight_valid",
             ),
             models.UniqueConstraint(
-                fields=["recipe", "base_food"],
+                fields=["user_id", "recipe", "base_food"],
                 name="unique_recipe_ingredient_basefood",
                 condition=Q(base_food__isnull=False),
             ),
             models.UniqueConstraint(
-                fields=["recipe", "custom_food"],
+                fields=["user_id", "recipe", "custom_food"],
                 name="unique_recipe_ingredient_customfood",
                 condition=Q(custom_food__isnull=False),
             ),
             models.UniqueConstraint(
-                fields=["recipe", "name", "proteins", "fats", "carbohydrates"],
+                fields=[
+                    "user_id",
+                    "recipe",
+                    "name",
+                    "proteins",
+                    "fats",
+                    "carbohydrates",
+                ],
                 name="unique_recipe_ingredient_manual",
                 condition=Q(base_food__isnull=True, custom_food__isnull=True),
             ),
@@ -469,6 +441,42 @@ class RecipeIngredient(TimeStampedModel):
             )
 
         return round(kcal_per_100g * self.weight_grams / 100, 1)
+
+    def get_nutrition(self) -> dict:
+        """Возвращает полную информацию о нутриентах"""
+        coeff = self.weight_grams / 100
+        if self.base_food:
+            source = self.base_food
+        elif self.custom_food:
+            source = self.custom_food
+        else:
+            return {
+                "proteins": round(float(self.proteins) * coeff, 1),
+                "fats": round(float(self.fats) * coeff, 1),
+                "carbohydrates": round(float(self.carbohydrates) * coeff, 1),
+                "kcal": round(float(self.kcal) * coeff, 1),
+            }
+
+        return {
+            "proteins": round(float(source.proteins) * coeff, 1),
+            "fats": round(float(source.fats) * coeff, 1),
+            "carbohydrates": round(float(source.carbohydrates) * coeff, 1),
+            "kcal": round(float(source.kcal) * coeff, 1),
+        }
+
+    def get_name(self):
+        if self.base_food:
+            return self.base_food.name
+        if self.custom_food:
+            return self.custom_food.custom_name
+        return self.name
+
+    def get_type(self):
+        if self.base_food:
+            return "base"
+        if self.custom_food:
+            return "custom"
+        return "manual"
 
     def save(self, *args, **kwargs):
         # Пересчёт kcal для ручного ввода всегда, игнорируя внешние присвоения
@@ -500,7 +508,7 @@ class EatenFood(TimeStampedModel):
         Recipe, null=True, blank=True, on_delete=models.SET_NULL
     )
 
-    # Поля для разового ввода
+    # Поля для разового ввода информации о нутриентах на 100гр
     name = models.CharField(max_length=255, null=True, blank=True)
     proteins = models.DecimalField(
         max_digits=4,
@@ -681,23 +689,52 @@ class EatenFood(TimeStampedModel):
         return round(kcal_per_100g * self.weight_grams / 100, 1)
 
     def get_nutrition(self) -> dict:
-        """Возвращает БЖУ для отчётов."""
+        """Возвращает полную информацию о нутриентах"""
+        coeff = self.weight_grams / 100
         if self.base_food:
             source = self.base_food
         elif self.custom_food:
             source = self.custom_food
+        elif self.recipe_food:
+            source = self.recipe_food.calculate_nutrition_per_100g()
+            return {
+                "proteins": round(source["proteins"] * coeff, 1),
+                "fats": round(source["fats"] * coeff, 1),
+                "carbohydrates": round(source["carbohydrates"] * coeff, 1),
+                "kcal": round(source["kcal"] * coeff, 1),
+            }
         else:
             return {
-                "proteins": self.proteins,
-                "fats": self.fats,
-                "carbohydrates": self.carbohydrates,
+                "proteins": round(float(self.proteins) * coeff, 1),
+                "fats": round(float(self.fats) * coeff, 1),
+                "carbohydrates": round(float(self.carbohydrates) * coeff, 1),
+                "kcal": round(float(self.kcal) * coeff, 1),
             }
 
         return {
-            "proteins": source.proteins,
-            "fats": source.fats,
-            "carbohydrates": source.carbohydrates,
+            "proteins": round(float(source.proteins) * coeff, 1),
+            "fats": round(float(source.fats) * coeff, 1),
+            "carbohydrates": round(float(source.carbohydrates) * coeff, 1),
+            "kcal": round(float(source.kcal) * coeff, 1),
         }
+
+    def get_name(self):
+        if self.base_food:
+            return self.base_food.name
+        if self.custom_food:
+            return self.custom_food.custom_name
+        if self.recipe_food:
+            return self.recipe_food.name
+        return self.name
+
+    def get_type(self):
+        if self.base_food:
+            return "base"
+        if self.custom_food:
+            return "custom"
+        if self.recipe_food:
+            return "recipe"
+        return "manual"
 
     def save(self, *args, **kwargs):
         # Пересчёт kcal для ручного ввода всегда, игнорируя внешние присвоения

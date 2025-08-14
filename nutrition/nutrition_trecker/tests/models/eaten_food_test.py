@@ -232,3 +232,12 @@ class TestEatenFoodModel:
         assert eaten_food.proteins == Decimal("16.0")
         assert eaten_food.fats == Decimal("4.6")
         assert eaten_food.carbohydrates == Decimal("11.4")
+
+    def test_eaten_food_get_nutrition_with_base_food(self, base_food):
+        eaten_food_base = EatenFood.objects.create(
+            user_id=1, base_food=base_food, weight_grams=200
+        )
+
+        nutrition = eaten_food_base.get_nutrition()
+        assert set(nutrition.keys()) == {"proteins", "fats", "carbohydrates", "kcal"}
+        assert all(isinstance(v, float) for v in nutrition.values())

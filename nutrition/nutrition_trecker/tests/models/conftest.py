@@ -32,9 +32,10 @@ def recipe():
 def recipe_with_igredients(base_food, custom_food):
     recipe = Recipe.objects.create(user_id=1, name="Тестовый рецепт")
     RecipeIngredient.objects.create(
-        recipe=recipe, weight_grams=150, base_food=base_food
+        user_id=1, recipe=recipe, weight_grams=150, base_food=base_food
     )
     RecipeIngredient.objects.create(
+        user_id=1,
         recipe=recipe,
         weight_grams=200,
         name="Secret Ingredient",
@@ -43,6 +44,6 @@ def recipe_with_igredients(base_food, custom_food):
         carbohydrates=6,
     )
     RecipeIngredient.objects.create(
-        recipe=recipe, weight_grams=150, custom_food=custom_food
+        user_id=1, recipe=recipe, weight_grams=150, custom_food=custom_food
     )
     return recipe

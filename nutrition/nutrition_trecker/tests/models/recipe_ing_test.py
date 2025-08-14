@@ -10,6 +10,7 @@ class TestRecipeIngredientModel:
 
     def test_create_recipe_ingredient_manual_success(self, recipe):
         ing = RecipeIngredient.objects.create(
+            user_id=1,
             recipe=recipe,
             name="Qwerty",
             proteins=10,
@@ -28,6 +29,7 @@ class TestRecipeIngredientModel:
     def test_create_recipe_ingredient_manual_sum_over_100(self, recipe):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
+                user_id=1,
                 recipe=recipe,
                 name="Qwerty",
                 proteins=35,
@@ -41,6 +43,7 @@ class TestRecipeIngredientModel:
     ):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
+                user_id=1,
                 recipe=recipe,
                 name="Qwerty",
                 custom_food=custom_food,
@@ -55,12 +58,17 @@ class TestRecipeIngredientModel:
     ):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
-                recipe=recipe, name="Qwerty", base_food=base_food, weight_grams=200
+                user_id=1,
+                recipe=recipe,
+                name="Qwerty",
+                base_food=base_food,
+                weight_grams=200,
             )
 
     def test_create_recipe_ingredient_manual_without_fats(self, recipe):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
+                user_id=1,
                 recipe=recipe,
                 name="Qwerty",
                 proteins=1,
@@ -71,12 +79,13 @@ class TestRecipeIngredientModel:
     def test_create_recipe_ingredient_manual_without_weight(self, recipe):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
-                recipe=recipe, name="Qwerty", proteins=1, carbohydrates=1
+                user_id=1, recipe=recipe, name="Qwerty", proteins=1, carbohydrates=1
             )
 
     def test_create_recipe_ingredient_manual_with_invalid_weight(self, recipe):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
+                user_id=1,
                 recipe=recipe,
                 name="Qwerty",
                 proteins=1,
@@ -87,6 +96,7 @@ class TestRecipeIngredientModel:
     def test_full_clean_recipe_ingredient_manual_sum_over_100(self, recipe):
         with pytest.raises(ValidationError):
             ing = RecipeIngredient(
+                user_id=1,
                 recipe=recipe,
                 name="Qwerty",
                 proteins=35,
@@ -99,7 +109,12 @@ class TestRecipeIngredientModel:
     def test_full_clean_recipe_ingredient_manual_without_proteins(self, recipe):
         with pytest.raises(ValidationError):
             ing = RecipeIngredient(
-                recipe=recipe, name="Qwerty", fats=1, carbohydrates=1, weight_grams=200
+                user_id=1,
+                recipe=recipe,
+                name="Qwerty",
+                fats=1,
+                carbohydrates=1,
+                weight_grams=200,
             )
             ing.full_clean()
 
@@ -108,6 +123,7 @@ class TestRecipeIngredientModel:
     ):
         with pytest.raises(ValidationError):
             ing = RecipeIngredient(
+                user_id=1,
                 recipe=recipe,
                 base_food=base_food,
                 name="Qwerty",
@@ -120,7 +136,7 @@ class TestRecipeIngredientModel:
 
     def test_create_recipe_ingredient_basefood_success(self, recipe, base_food):
         ing = RecipeIngredient.objects.create(
-            recipe=recipe, base_food=base_food, weight_grams=200
+            user_id=1, recipe=recipe, base_food=base_food, weight_grams=200
         )
 
         assert ing.recipe == recipe
@@ -129,7 +145,7 @@ class TestRecipeIngredientModel:
 
     def test_create_recipe_ingredient_customfood_success(self, recipe, custom_food):
         ing = RecipeIngredient.objects.create(
-            recipe=recipe, custom_food=custom_food, weight_grams=200
+            user_id=1, recipe=recipe, custom_food=custom_food, weight_grams=200
         )
 
         assert ing.recipe == recipe
@@ -138,7 +154,7 @@ class TestRecipeIngredientModel:
 
     def test_recipe_ingredient_pre_delete_signal_custom_food(self, custom_food, recipe):
         ingr = RecipeIngredient.objects.create(
-            recipe=recipe, custom_food=custom_food, weight_grams=200
+            user_id=1, recipe=recipe, custom_food=custom_food, weight_grams=200
         )
         custom_food.delete()
         ingr.refresh_from_db()
@@ -151,7 +167,7 @@ class TestRecipeIngredientModel:
 
     def test_recipe_ingredient_pre_delete_signal_base_food(self, base_food, recipe):
         ingr = RecipeIngredient.objects.create(
-            recipe=recipe, base_food=base_food, weight_grams=200
+            user_id=1, recipe=recipe, base_food=base_food, weight_grams=200
         )
         base_food.delete()
         ingr.refresh_from_db()
@@ -165,8 +181,16 @@ class TestRecipeIngredientModel:
     def test_create_recipe_ingredient_not_unique(self, recipe, base_food):
         with pytest.raises(IntegrityError), transaction.atomic():
             RecipeIngredient.objects.create(
-                recipe=recipe, weight_grams=100, base_food=base_food
+                user_id=1, recipe=recipe, weight_grams=100, base_food=base_food
             )
             RecipeIngredient.objects.create(
-                recipe=recipe, weight_grams=200, base_food=base_food
+                user_id=1, recipe=recipe, weight_grams=200, base_food=base_food
             )
+
+    def test_recipe_ingredient_get_nutrition(self, recipe, base_food):
+        recipe_ingredient = RecipeIngredient.objects.create(
+            user_id=1, recipe=recipe, weight_grams=100, base_food=base_food
+        )
+        nutrition = recipe_ingredient.get_nutrition()
+        assert set(nutrition.keys()) == {"proteins", "fats", "carbohydrates", "kcal"}
+        assert all(isinstance(v, float) for v in nutrition.values())

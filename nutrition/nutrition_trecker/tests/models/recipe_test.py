@@ -1,6 +1,5 @@
 import pytest
 from nutrition_trecker.models import Recipe, RecipeIngredient
-from decimal import Decimal
 
 
 @pytest.mark.django_db
@@ -11,6 +10,7 @@ class TestRecipeModel:
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
 
         RecipeIngredient.objects.create(
+            user_id=1,
             recipe=recipe,
             weight_grams=100,
             name="Ingredient 1",
@@ -25,6 +25,7 @@ class TestRecipeModel:
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
 
         RecipeIngredient.objects.create(
+            user_id=1,
             recipe=recipe,
             weight_grams=100,
             name="Ingredient 1",
@@ -34,6 +35,7 @@ class TestRecipeModel:
         )
 
         RecipeIngredient.objects.create(
+            user_id=1,
             recipe=recipe,
             weight_grams=200,
             name="Ingredient 2",
@@ -44,19 +46,20 @@ class TestRecipeModel:
 
         nutrition = recipe.calculate_nutrition_per_100g()
 
-        assert nutrition["proteins"] == Decimal("2.0")
-        assert nutrition["fats"] == Decimal("0.7")
-        assert nutrition["carbohydrates"] == Decimal("4.1")
-        assert nutrition["kcal"] == Decimal("30.9")
+        assert nutrition["proteins"] == 2.0
+        assert nutrition["fats"] == 0.7
+        assert nutrition["carbohydrates"] == 4.1
+        assert nutrition["kcal"] == 30.9
 
     def test_recipe_get_ingredients_with_details(self, base_food, custom_food):
         recipe = Recipe.objects.create(user_id=1, name="My Recipe")
 
         RecipeIngredient.objects.create(
-            recipe=recipe, weight_grams=100, base_food=base_food
+            user_id=1, recipe=recipe, weight_grams=100, base_food=base_food
         )
 
         RecipeIngredient.objects.create(
+            user_id=1,
             recipe=recipe,
             weight_grams=200,
             name="Ingredient 2",
@@ -66,7 +69,7 @@ class TestRecipeModel:
         )
 
         RecipeIngredient.objects.create(
-            recipe=recipe, weight_grams=250, custom_food=custom_food
+            user_id=1, recipe=recipe, weight_grams=250, custom_food=custom_food
         )
 
         details = recipe.get_ingredients_with_details()

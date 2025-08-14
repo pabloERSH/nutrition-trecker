@@ -6,7 +6,8 @@ class ModelCleanMixin:
     """Миксин для вызова model.full_clean() в DRF."""
 
     def validate(self, attrs):
-        attrs = super().validate(attrs)
+        if hasattr(super(), "validate"):
+            attrs = super().validate(attrs)
 
         instance = getattr(self, "instance", None)
         if instance is None:

@@ -1,6 +1,7 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 
@@ -26,7 +27,9 @@ class JWTAuthTgUser(BaseAuthentication):
             if not telegram_id or not isinstance(telegram_id, int):
                 raise AuthenticationFailed("Invalid telegram_id in token")
 
-            return (telegram_id, token)
+            user = AnonymousUser()
+            user.telegram_id = telegram_id
+            return (user, token)
         except ExpiredSignatureError:
             raise AuthenticationFailed("Token expired")
         except InvalidTokenError:
