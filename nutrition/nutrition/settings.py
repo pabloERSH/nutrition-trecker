@@ -164,11 +164,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "common.authentication.JWTAuthTgUser",
+        "common.authentication.JWTAuthTgUser.JWTAuthTgUser",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 
 # Logging Configuration
@@ -209,7 +211,7 @@ LOGGING = {
         },
     },
     "loggers": {
-        "nutrition_trecker": {
+        "nutrition": {
             "handlers": ["console", "file"],
             "level": "DEBUG" if DEBUG else "WARNING",
             "propagate": False,

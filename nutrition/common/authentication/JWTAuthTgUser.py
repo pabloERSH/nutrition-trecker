@@ -1,9 +1,22 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
+
+
+class AuthenticatedTgUser:
+    """
+    Простой объект-пользователь для DRF,
+    содержащий только telegram_id и is_authenticated = True.
+    """
+
+    def __init__(self, telegram_id: int):
+        self.telegram_id = telegram_id
+        self.is_authenticated = True
+
+    def __str__(self):
+        return f"TgUser({self.telegram_id})"
 
 
 class JWTAuthTgUser(BaseAuthentication):
@@ -27,8 +40,7 @@ class JWTAuthTgUser(BaseAuthentication):
             if not telegram_id or not isinstance(telegram_id, int):
                 raise AuthenticationFailed("Invalid telegram_id in token")
 
-            user = AnonymousUser()
-            user.telegram_id = telegram_id
+            user = AuthenticatedTgUser(telegram_id)
             return (user, token)
         except ExpiredSignatureError:
             raise AuthenticationFailed("Token expired")
