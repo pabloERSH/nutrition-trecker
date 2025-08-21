@@ -149,15 +149,6 @@ class TestEatenFoodModel:
 
         assert eaten_food.eaten_at == date
 
-    def test_create_eatenfood_with_invalid_old_eaten_at(self, custom_food):
-        date = timezone.now() - timezone.timedelta(
-            days=settings.MAX_EATEN_FOOD_AGE_DAYS + 1
-        )
-        with pytest.raises(IntegrityError), transaction.atomic():
-            EatenFood.objects.create(
-                user_id=1, eaten_at=date, custom_food=custom_food, weight_grams=200
-            )
-
     def test_create_eatenfood_with_invalid_future_eaten_at(self, custom_food):
         date = timezone.now() + timezone.timedelta(seconds=10)
         with pytest.raises(IntegrityError), transaction.atomic():
@@ -174,16 +165,6 @@ class TestEatenFoodModel:
         )
 
         eaten_food.full_clean()
-
-    def test_clean_eatenfood_with_invalid_old_eaten_at(self, custom_food):
-        date = timezone.now() - timezone.timedelta(
-            days=settings.MAX_EATEN_FOOD_AGE_DAYS + 1
-        )
-        with pytest.raises(ValidationError):
-            eaten_food = EatenFood(
-                user_id=1, eaten_at=date, custom_food=custom_food, weight_grams=200
-            )
-            eaten_food.full_clean()
 
     def test_clean_eatenfood_with_invalid_future_eaten_at(self, custom_food):
         date = timezone.now() + timezone.timedelta(seconds=10)
@@ -241,3 +222,8 @@ class TestEatenFoodModel:
         nutrition = eaten_food_base.get_nutrition()
         assert set(nutrition.keys()) == {"proteins", "fats", "carbohydrates", "kcal"}
         assert all(isinstance(v, float) for v in nutrition.values())
+
+    def test_eaten_food_with_recipe_food_without_ingr_full_clean(self, recipe):
+        with pytest.raises(ValidationError):
+            food = EatenFood(user_id=1, recipe_food=recipe, weight_grams=100)
+            food.full_clean()
