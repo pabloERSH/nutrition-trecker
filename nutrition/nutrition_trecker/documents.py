@@ -10,11 +10,6 @@ class BaseFoodDocument(Document):
     name = fields.TextField(
         analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
     )
-    proteins = fields.FloatField()
-    fats = fields.FloatField()
-    carbohydrates = fields.FloatField()
-    created_at = fields.DateField()
-    updated_at = fields.DateField()
 
     class Index:
         name = "base_food"
@@ -61,11 +56,6 @@ class CustomFoodDocument(Document):
         analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
     )
     user_id = fields.KeywordField()
-    proteins = fields.FloatField()
-    fats = fields.FloatField()
-    carbohydrates = fields.FloatField()
-    created_at = fields.DateField()
-    updated_at = fields.DateField()
 
     class Index:
         name = "custom_food"
@@ -115,8 +105,6 @@ class RecipeDocument(Document):
         analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
     )
     user_id = fields.KeywordField()
-    created_at = fields.DateField()
-    updated_at = fields.DateField()
 
     class Index:
         name = "recipe"
