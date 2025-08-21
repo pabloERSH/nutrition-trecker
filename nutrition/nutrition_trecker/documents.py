@@ -8,7 +8,8 @@ class BaseFoodDocument(Document):
     """Документ Elasticsearch для модели BaseFood."""
 
     name = fields.TextField(
-        analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
+        analyzer="russian_analyzer",
+        fields={"raw": fields.KeywordField(), "suggest": fields.CompletionField()},
     )
 
     class Index:
@@ -47,13 +48,18 @@ class BaseFoodDocument(Document):
         """Подготовка поля name для индексации."""
         return instance.name.lower()
 
+    def prepare_suggest(self, instance):
+        """Подготовка поля suggest для автокомплита."""
+        return {"input": [instance.name.lower()], "weight": 1}
+
 
 @registry.register_document
 class CustomFoodDocument(Document):
     """Документ Elasticsearch для модели CustomFood."""
 
     custom_name = fields.TextField(
-        analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
+        analyzer="russian_analyzer",
+        fields={"raw": fields.KeywordField(), "suggest": fields.CompletionField()},
     )
     user_id = fields.KeywordField()
 
@@ -93,13 +99,22 @@ class CustomFoodDocument(Document):
         """Подготовка поля custom_name для индексации."""
         return instance.custom_name.lower()
 
+    def prepare_suggest(self, instance):
+        """Подготовка поля suggest для автокомплита."""
+        return {
+            "input": [instance.custom_name.lower()],
+            "weight": 1,
+            "contexts": {"user_id": instance.user.id},  # Для фильтрации по пользователю
+        }
+
 
 @registry.register_document
 class RecipeDocument(Document):
     """Документ Elasticsearch для модели Recipe."""
 
     name = fields.TextField(
-        analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
+        analyzer="russian_analyzer",
+        fields={"raw": fields.KeywordField(), "suggest": fields.CompletionField()},
     )
     description = fields.TextField(
         analyzer="russian_analyzer", fields={"raw": fields.KeywordField()}
@@ -145,3 +160,11 @@ class RecipeDocument(Document):
     def prepare_description(self, instance):
         """Подготовка поля description для индексации."""
         return instance.description.lower() if instance.description else ""
+
+    def prepare_suggest(self, instance):
+        """Подготовка поля suggest для автокомплита."""
+        return {
+            "input": [instance.name.lower()],
+            "weight": 1,
+            "contexts": {"user_id": instance.user.id},  # Для фильтрации по пользователю
+        }
