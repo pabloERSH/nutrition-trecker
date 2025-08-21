@@ -4,7 +4,7 @@ from .models import EatenFood, BaseFood, CustomFood, Recipe, RecipeIngredient
 import logging
 
 
-logger = logging.getLogger("nutrition_trecker")
+logger = logging.getLogger("nutrition")
 
 
 @receiver(pre_delete, sender=BaseFood)
