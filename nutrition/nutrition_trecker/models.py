@@ -185,7 +185,7 @@ class Recipe(TimeStampedModel):
             "kcal": 0.0,
         }
 
-        ingredients = self.ingredients.select_related("base_food", "custom_food")
+        ingredients = self.ingredients.all()
 
         for ing in ingredients:
             total["weight"] += ing.weight_grams  # Суммируем вес
@@ -200,11 +200,20 @@ class Recipe(TimeStampedModel):
         # Нормируем на 100 г (если вес рецепта > 0)
         if total["weight"] == 0:
             return {
-                "weight": 0.0,
-                "proteins": 0.0,
-                "fats": 0.0,
-                "carbohydrates": 0.0,
-                "kcal": 0.0,
+                "per_100g": {
+                    "weight": 0.0,
+                    "proteins": 0.0,
+                    "fats": 0.0,
+                    "carbohydrates": 0.0,
+                    "kcal": 0.0,
+                },
+                "total": {
+                    "weight": 0.0,
+                    "proteins": 0.0,
+                    "fats": 0.0,
+                    "carbohydrates": 0.0,
+                    "kcal": 0.0,
+                },
             }
 
         result = {
@@ -237,6 +246,7 @@ class Recipe(TimeStampedModel):
         [
             {
                 'type': 'base',
+                'base_food_id': 12,
                 'name': 'Куриная грудка',
                 'weight_grams': 200,
                 'proteins': 44.0,
@@ -248,7 +258,7 @@ class Recipe(TimeStampedModel):
         ]
         """
         ingredients = []
-        for ing in self.ingredients.select_related("base_food", "custom_food"):
+        for ing in self.ingredients.all():
             nutrition = ing.get_nutrition()
 
             ingredient_data = {
@@ -260,6 +270,12 @@ class Recipe(TimeStampedModel):
                 "carbohydrates": nutrition["carbohydrates"],
                 "kcal": nutrition["kcal"],
             }
+
+            match ingredient_data["type"]:
+                case "base":
+                    ingredient_data["base_food_id"] = ing.base_food_id
+                case "custom":
+                    ingredient_data["custom_food_id"] = ing.custom_food_id
 
             ingredients.append(ingredient_data)
         return ingredients
@@ -612,11 +628,7 @@ class EatenFood(TimeStampedModel):
                 name="eatenfood_weight_valid",
             ),
             models.CheckConstraint(
-                condition=Q(eaten_at__lte=Now())  # Не в будущем
-                & Q(
-                    eaten_at__gte=Now()
-                    - timezone.timedelta(days=settings.MAX_EATEN_FOOD_AGE_DAYS)
-                ),  # Не раньше заданного
+                condition=Q(eaten_at__lte=Now()),  # Не в будущем
                 name="eatenfood_date_valid",
             ),
         ]
@@ -624,12 +636,6 @@ class EatenFood(TimeStampedModel):
     def clean(self):
         # Проверяем, что дата приёма пищи выбрана правильно
         now = timezone.now()
-        max_age = now - timezone.timedelta(days=settings.MAX_EATEN_FOOD_AGE_DAYS)
-        if self.eaten_at < max_age:
-            raise ValidationError(
-                f"Дата приёма пищи не может быть выбрана раньше, чем {settings.MAX_EATEN_FOOD_AGE_DAYS} дней назад"
-            )
-
         if self.eaten_at > now:
             raise ValidationError("Дата приёма пищи не может быть в будущем.")
 
@@ -697,7 +703,7 @@ class EatenFood(TimeStampedModel):
         elif self.custom_food:
             kcal_per_100g = self.custom_food.kcal
         elif self.recipe_food:
-            kcal_per_100g = self.recipe_food.calculate_nutrition_per_100g()["kcal"]
+            kcal_per_100g = self.recipe_food.calculate_nutrition()["per_100g"]["kcal"]
         else:
             kcal_per_100g = (
                 (self.proteins * 4) + (self.fats * 9) + (self.carbohydrates * 4)
