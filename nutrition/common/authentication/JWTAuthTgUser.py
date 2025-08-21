@@ -30,19 +30,19 @@ class JWTAuthTgUser(BaseAuthentication):
         try:
             prefix, token = auth_header.split()
             if prefix.lower() != "bearer":
-                raise AuthenticationFailed("Invalid token prefix")
+                raise AuthenticationFailed("Некорректный префикс токена.")
         except ValueError:
-            raise AuthenticationFailed("Invalid Authorization header")
+            raise AuthenticationFailed("Некорректный заголовок аутентификации.")
 
         try:
             payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
             telegram_id = payload.get("telegram_id")
             if not telegram_id or not isinstance(telegram_id, int):
-                raise AuthenticationFailed("Invalid telegram_id in token")
+                raise AuthenticationFailed("Некорректный telegram_id в токене.")
 
             user = AuthenticatedTgUser(telegram_id)
             return (user, token)
         except ExpiredSignatureError:
-            raise AuthenticationFailed("Token expired")
+            raise AuthenticationFailed("Срок службы токена истёк.")
         except InvalidTokenError:
-            raise AuthenticationFailed("Invalid token")
+            raise AuthenticationFailed("Неккоректный токен.")
