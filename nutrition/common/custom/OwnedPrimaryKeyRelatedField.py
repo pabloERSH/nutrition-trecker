@@ -6,7 +6,7 @@ class OwnedPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
     def __init__(self, **kwargs):
         self.owner_field = kwargs.pop("owner_field", "user_id")
-        super.__init__(self)
+        super().__init__(**kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()

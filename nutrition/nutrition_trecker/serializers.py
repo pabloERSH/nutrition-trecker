@@ -1,7 +1,7 @@
 from common.mixins.ModelCleanMixin import ModelCleanMixin
 from rest_framework import serializers
 from nutrition_trecker import models
-from common.custom import OwnedPrimaryKeyRelatedField
+from common.custom.OwnedPrimaryKeyRelatedField import OwnedPrimaryKeyRelatedField
 
 
 class BaseFoodSerializer(serializers.ModelSerializer):
