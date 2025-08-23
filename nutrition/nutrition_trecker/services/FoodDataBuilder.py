@@ -19,6 +19,7 @@ class NutritionInfo(TypedDict):
     carbohydrates: float
     kcal: float
 
+
 class EatenFoodInfo(TypedDict):
     id: int
     type: str
@@ -31,6 +32,7 @@ class EatenFoodInfo(TypedDict):
     base_food_id: Optional[int]
     custom_food_id: Optional[int]
     recipe_id: Optional[int]
+
 
 class RecipeInfo(TypedDict):
     id: int
@@ -70,7 +72,9 @@ class FoodDataBuilder:
             return {"date": None, "start_date": None, "end_date": None}
 
     @classmethod
-    def _eaten_food_nutritions_list_build(cls, qs: QuerySet[models.EatenFood]) ->  Tuple[List[EatenFoodInfo], NutritionInfo]:
+    def _eaten_food_nutritions_list_build(
+        cls, qs: QuerySet[models.EatenFood]
+    ) -> Tuple[List[EatenFoodInfo], NutritionInfo]:
         """
         Возвращает tuple со списком продуктов и блюд с полным кбжу
         из данного queryset и суммарный кбжу в виде словаря.
@@ -148,7 +152,10 @@ class FoodDataBuilder:
     @classmethod
     def eaten_food_list_data_build(
         cls, queryset: QuerySet[models.EatenFood], request: Request
-    ) -> Union[Dict[str, Union[str, List[EatenFoodInfo], NutritionInfo]], Dict[date, NutritionInfo]]:
+    ) -> Union[
+        Dict[str, Union[str, List[EatenFoodInfo], NutritionInfo]],
+        Dict[date, NutritionInfo],
+    ]:
         """
         Возвращает словарь с данными о приёмах пищи из EatenFood за выбранную дату,
         полностью подготовленными к ответу (без ForeignKey и т.д. - только данные).
@@ -194,7 +201,9 @@ class FoodDataBuilder:
         return response
 
     @classmethod
-    def recipe_list_data_build(cls, queryset: QuerySet[models.Recipe]) -> List[RecipeInfo]:
+    def recipe_list_data_build(
+        cls, queryset: QuerySet[models.Recipe]
+    ) -> List[RecipeInfo]:
         """Возвращает список с информацией о рецептах и суммарным кбжу + средним кбжу на 100 грамм блюда"""
         result = []
 
