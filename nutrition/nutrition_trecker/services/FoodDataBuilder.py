@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.exceptions import ValidationError
 from datetime import timedelta, date
 import matplotlib
+from typing import TypedDict, List, Optional, Tuple, Union, Dict
 
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
@@ -12,11 +13,39 @@ from io import BytesIO
 import base64
 
 
+class NutritionInfo(TypedDict):
+    proteins: float
+    fats: float
+    carbohydrates: float
+    kcal: float
+
+class EatenFoodInfo(TypedDict):
+    id: int
+    type: str
+    name: str
+    weight_grams: float
+    nutrition: NutritionInfo
+    eaten_at: str
+    created_at: str
+    updated_at: str
+    base_food_id: Optional[int]
+    custom_food_id: Optional[int]
+    recipe_id: Optional[int]
+
+class RecipeInfo(TypedDict):
+    id: int
+    name: str
+    description: str
+    created_at: str
+    updated_at: str
+    nutrition: NutritionInfo
+
+
 class FoodDataBuilder:
     """Класс для получения данных из моделей nutrition_trecker"""
 
     @classmethod
-    def parse_date_range(cls, request: Request) -> dict:
+    def parse_date_range(cls, request: Request) -> Dict[str, Optional[date]]:
         """
         Парсит диапазон дат или одну конкретную дату из request.
         Возвращает словарь {"date": date, "start_date": start_date, "end_date": end_date},
@@ -41,7 +70,7 @@ class FoodDataBuilder:
             return {"date": None, "start_date": None, "end_date": None}
 
     @classmethod
-    def _eaten_food_nutritions_list_build(cls, qs: QuerySet[models.EatenFood]) -> tuple:
+    def _eaten_food_nutritions_list_build(cls, qs: QuerySet[models.EatenFood]) ->  Tuple[List[EatenFoodInfo], NutritionInfo]:
         """
         Возвращает tuple со списком продуктов и блюд с полным кбжу
         из данного queryset и суммарный кбжу в виде словаря.
@@ -86,7 +115,7 @@ class FoodDataBuilder:
     @classmethod
     def _eaten_food_range_days_total_list_build(
         cls, qs: QuerySet[models.EatenFood], start_date: date, end_date: date
-    ) -> dict:
+    ) -> Dict[date, NutritionInfo]:
         """Возвращает словарь с суммарным кбжу из данного queryset по каждому дню из данного диапазона."""
         if start_date > end_date:
             raise ValidationError(
@@ -119,7 +148,7 @@ class FoodDataBuilder:
     @classmethod
     def eaten_food_list_data_build(
         cls, queryset: QuerySet[models.EatenFood], request: Request
-    ) -> dict:
+    ) -> Union[Dict[str, Union[str, List[EatenFoodInfo], NutritionInfo]], Dict[date, NutritionInfo]]:
         """
         Возвращает словарь с данными о приёмах пищи из EatenFood за выбранную дату,
         полностью подготовленными к ответу (без ForeignKey и т.д. - только данные).
@@ -165,7 +194,7 @@ class FoodDataBuilder:
         return response
 
     @classmethod
-    def recipe_list_data_build(cls, queryset: QuerySet[models.Recipe]) -> list:
+    def recipe_list_data_build(cls, queryset: QuerySet[models.Recipe]) -> List[RecipeInfo]:
         """Возвращает список с информацией о рецептах и суммарным кбжу + средним кбжу на 100 грамм блюда"""
         result = []
 
@@ -185,7 +214,7 @@ class FoodDataBuilder:
     @classmethod
     def eaten_food_stats_graph_draw(
         cls, queryset: QuerySet[models.EatenFood], request: Request
-    ) -> list:
+    ) -> List[str]:
         """
         Возвращает 4 графика в формате base64 с демонстрацией суммарного количества
         каждого нутриента в приёмах пищи за каждый день из данного диапазона.

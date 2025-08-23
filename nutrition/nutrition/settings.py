@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_env_variable(var_name, default=None):
+def get_env_variable(var_name: str, default=None) -> str:
     value = os.getenv(var_name)
     if value is not None:
         return value
@@ -169,6 +169,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
 }
@@ -228,6 +229,19 @@ LOGGING = {
         },
     },
 }
+
+# Mailing
+
+ADMINS = [
+    (get_env_variable("ADMIN1"), get_env_variable("ADMIN1_EMAIL"))
+]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = get_env_variable("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_HOST_PASSWORD")
 
 # Nutrition trecker
 
