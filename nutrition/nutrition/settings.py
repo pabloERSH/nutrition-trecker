@@ -244,3 +244,17 @@ EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_HOST_PASSWORD")
 # Nutrition trecker
 
 MAX_EATEN_FOOD_AGE_DAYS = 90
+
+# Cache
+
+CACHE = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": get_env_variable(
+            "REDIS_HOST", "redis://:${REDIS_PASSWORD}@redis:6379/1"
+        ),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}

@@ -10,10 +10,36 @@ services:
       - xpack.security.enabled=${ELASTICSEARCH_SECURE}
       - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    networks:
+      - nutrition-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 3
+
+  redis:
+    image: redis:8-alpine
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+    networks:
+      - nutrition-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    mem_limit: 60m
+
 volumes:
   esdata01:
+  redis-data:
+
+networks:
+  nutrition-network:
+    driver: bridge
