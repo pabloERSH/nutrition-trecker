@@ -2,18 +2,36 @@ from rest_framework import viewsets, status
 from nutrition_trecker import models, serializers
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
-from nutrition_trecker.services.FoodDataBuilder import FoodDataBuilder
-from common.permissions import IsOwner403Permission
 from rest_framework.decorators import action
+from common.permissions import IsOwner403Permission
 from django.db.models import Prefetch
 from nutrition_trecker import documents
+from django.core.cache import cache
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+from django.views.decorators.vary import vary_on_headers
+from nutrition_trecker.services.FoodDataBuilder import FoodDataBuilder
 from nutrition_trecker.services.FoodSearcher import FoodSearcher
+from common.utils.CacheHelper import CacheHelper
 
 
 class BaseFoodViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = models.BaseFood.objects.all()
     serializer_class = serializers.BaseFoodSerializer
     document = documents.BaseFoodDocument
+
+    def list(self, request, *args, **kwargs):
+        """Кэшируем готовый список продуктов для BaseFood."""
+        cache_key = CacheHelper.make_cache_key("basefood", "list")
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data, status=status.HTTP_200_OK)
+
+        queryset = models.BaseFood.objects.all()
+        serializer = self.get_serializer(queryset, many=True)
+        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 7)  # 7 дней
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"])
     def autocomplete(self, request):
@@ -23,6 +41,7 @@ class BaseFoodViewSet(viewsets.ReadOnlyModelViewSet):
         search_results = FoodSearcher.autocomplete(self.document, query, limit=limit)
         return Response(search_results, status=status.HTTP_200_OK)
 
+    @method_decorator(cache_page(60 * 5))  # 5 минут
     @action(detail=False, methods=["get"])
     def search(self, request):
         """Endpoint для полнотекстового поиска base-food. Возвращает полную информацию о продуктах, подошедших под поиск."""
@@ -66,6 +85,15 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(user_id=self.request.user.telegram_id)
+
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.telegram_id
+        cache_key = CacheHelper.make_cache_key("customfood", "list", user_id)
+        customfood = cache.get(cache_key)
+        if customfood is None:
+            customfood = self.get_queryset()
+            cache.set(cache_key, customfood, 60 * 10)
+        return Response(customfood, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"])
     def autocomplete(self, request):
@@ -149,8 +177,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(user_id=self.request.user.telegram_id)
 
     def list(self, request, *args, **kwargs):
-        qs = self.get_queryset()
-        recipes = FoodDataBuilder.recipe_list_data_build(qs)
+        user_id = request.user.telegram_id
+        cache_key = CacheHelper.make_cache_key("recipe", "list", user_id)
+        recipes = cache.get(cache_key)
+        if recipes is None:
+            qs = self.get_queryset()
+            recipes = FoodDataBuilder.recipe_list_data_build(qs)
+            cache.set(cache_key, recipes, 60 * 5)
         return Response(recipes, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"])
@@ -223,12 +256,21 @@ class RecipeIngredientViewSet(viewsets.ModelViewSet):
         )
 
     def list(self, request, *args, **kwargs):
-        recipe = self._get_recipe()
-        return Response(
-            {
+        recipe_pk = self.kwargs.get("recipe_pk")
+        user_id = request.user.telegram_id
+        cache_key = CacheHelper.make_cache_key(
+            f"recipe_ingredient:recipe_id:{recipe_pk}", "list", user_id
+        )
+        ingredients = cache.get(cache_key)
+        if ingredients is None:
+            recipe = self._get_recipe()
+            ingredients = {
                 "recipe_name": recipe.name,
                 "ingredients": recipe.get_ingredients_with_details(),
-            },
+            }
+            cache.set(cache_key, ingredients, 60 * 5)
+        return Response(
+            ingredients,
             status=status.HTTP_200_OK,
         )
 
@@ -258,11 +300,35 @@ class EatenFoodViewSet(viewsets.ModelViewSet):
         serializer.save(user_id=self.request.user.telegram_id)
 
     def list(self, request, *args, **kwargs):
-        qs = self.get_queryset()
+        dates = FoodDataBuilder.parse_date_range(request)
+        user_id = request.user.telegram_id
 
-        eaten_food = FoodDataBuilder.eaten_food_list_data_build(qs, request)
-        return Response(eaten_food, status=status.HTTP_200_OK)
+        if dates["date"]:
+            cache_key = CacheHelper.make_cache_key(
+                "eatenfood", f"list:date:{dates['date'].isoformat()}", user_id
+            )
+        elif dates["start_date"] and dates["end_date"]:
+            cache_key = CacheHelper.make_cache_key(
+                "eatenfood",
+                f"list:dates:{dates['start_date'].isoformat()}:{dates['end_date'].isoformat()}",
+                user_id,
+            )
+        else:
+            return Response(
+                {"message": "Требуется выбрать дату."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        eatenfood = cache.get(cache_key)
+        if eatenfood is None:
+            qs = self.get_queryset()
+            eatenfood = FoodDataBuilder.eaten_food_list_data_build(qs, request)
+            cache.set(cache_key, eatenfood, 60 * 5)
+
+        return Response(eatenfood, status=status.HTTP_200_OK)
+
+    @method_decorator(cache_page(60 * 3))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"])
     def nutrition_stats(self, request):
         qs = self.get_queryset()
