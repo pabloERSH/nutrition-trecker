@@ -1,10 +1,51 @@
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, post_save, post_delete
 from django.dispatch import receiver
-from .models import EatenFood, BaseFood, CustomFood, Recipe, RecipeIngredient
 import logging
+from .models import EatenFood, BaseFood, CustomFood, Recipe, RecipeIngredient
+from common.utils.CacheHelper import CacheHelper
+from django.core.cache import cache
 
 
 logger = logging.getLogger("nutrition")
+
+
+@receiver(post_save, sender=BaseFood)
+@receiver(post_delete, sender=BaseFood)
+def invalidate_basefood_cache(sender, instance, **kwargs):
+    cache_key = CacheHelper.make_cache_key("basefood", "list")
+    cache.delete(cache_key)
+    logger.info(f"Cache delete for BaseFood(id={instance.id})")
+
+
+@receiver(post_save, sender=CustomFood)
+@receiver(post_delete, sender=CustomFood)
+def invalidate_customfood_cache(sender, instance, **kwargs):
+    CacheHelper.bump_cache_version("customfood", instance.user_id)
+    logger.info(f"Cache version bumped for CustomFood(id={instance.id})")
+
+
+@receiver(post_save, sender=Recipe)
+@receiver(post_delete, sender=Recipe)
+def invalidate_recipe_cache(sender, instance, **kwargs):
+    CacheHelper.bump_cache_version("recipe", instance.user_id)
+    logger.info(f"Cache version bumped for Recipe(id={instance.id})")
+
+
+@receiver(post_save, sender=RecipeIngredient)
+@receiver(post_delete, sender=RecipeIngredient)
+def invalidate_recipe_ingredient_cache(sender, instance, **kwargs):
+    CacheHelper.bump_cache_version(
+        f"recipe_ingredient:recipe_id:{instance.recipe}", instance.user_id
+    )
+    CacheHelper.bump_cache_version("recipe", instance.user_id)
+    logger.info(f"Cache version bumped for RecipeIngredient(id={instance.id})")
+
+
+@receiver(post_save, sender=EatenFood)
+@receiver(post_delete, sender=EatenFood)
+def invalidate_eatenfood_cache(sender, instance, **kwargs):
+    CacheHelper.bump_cache_version("eaten_food", instance.user_id)
+    logger.info(f"Cache version bumped for EatenFood(id={instance.id})")
 
 
 @receiver(pre_delete, sender=BaseFood)
