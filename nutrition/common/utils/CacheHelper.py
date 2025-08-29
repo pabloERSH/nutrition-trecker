@@ -4,6 +4,7 @@ from django.core.cache import cache
 class CacheHelper:
     @classmethod
     def get_cache_version(cls, entity: str, user_id: int | str = "gloabal") -> int:
+        """Возвращает текущую версию кэша для выбранной сущности."""
         version_key = f"cache_version:{entity}:{user_id}"
         version = cache.get(version_key)
         if version is None:
@@ -14,6 +15,7 @@ class CacheHelper:
 
     @classmethod
     def bump_cache_version(cls, entity: str, user_id: int | str = "gloabal") -> int:
+        """Инвалидирует кэш икриментом версии."""
         version_key = f"cache_version:{entity}:{user_id}"
         cache.incr(version_key)
 
@@ -21,5 +23,6 @@ class CacheHelper:
     def make_cache_key(
         cls, entity: str, suffix: str, user_id: int | str = "gloabal"
     ) -> str:
+        """Возвращает ключ с актуальной версией для создания и нахождения требуемого кэша."""
         version = cls.get_cache_version(entity, user_id)
         return f"{entity}:{user_id}:v{version}:{suffix}"
