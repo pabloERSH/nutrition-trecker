@@ -1,6 +1,47 @@
 services:
+  nutrition:
+    build: .
+    container_name: nutrition-trecker
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8001:8000"
+    volumes:
+      - logs:/app/logs
+    networks:
+      - nutrition-network
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:16.4-alpine
+    container_name: nutrition-db
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nutrition-network
+
   elasticsearch:
     image: elasticsearch:8.19.1
+    container_name: nutrition-elasticsearch
     volumes:
       - esdata01:/usr/share/elasticsearch/data
     ports:
@@ -9,7 +50,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=${ELASTICSEARCH_SECURE}
       - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD}
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     networks:
       - nutrition-network
     healthcheck:
@@ -19,14 +60,14 @@ services:
       retries: 3
 
   redis:
-    image: redis:8-alpine
+    image: redis:7.2-alpine
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     ports:
       - 6379:6379
     volumes:
-      - redis-data:/data
+      - redis_data:/data
     networks:
       - nutrition-network
     healthcheck:
@@ -38,7 +79,9 @@ services:
 
 volumes:
   esdata01:
-  redis-data:
+  redis_data:
+  logs:
+  postgres_data:
 
 networks:
   nutrition-network:

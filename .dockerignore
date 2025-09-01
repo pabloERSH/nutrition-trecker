@@ -1,0 +1,59 @@
+# Python кэш
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Базы
+*.db
+*.sqlite3
+
+# Логи
+*.log
+
+# Виртуальные окружения
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# Git и IDE
+.git
+.gitignore
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# Docker служебные файлы (не нужны внутри образа)
+Dockerfile
+.dockerignore
+
+# Статика и медиа (собираются отдельно)
+staticfiles/
+media/
+
+# Кэш и временные файлы
+*.tmp
+*.bak
+*.cache
+.cache/
+pip-log.txt
+
+# Тестовые данные
+.coverage
+htmlcov/
+*.pytest_cache/
+.tox/
+
+# OS специфичное
+.DS_Store
+Thumbs.db
+
+# Ruff
+.ruff_cache/
+
+# Документация
+README.md
