@@ -245,9 +245,9 @@ EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_HOST_PASSWORD")
 
 MAX_EATEN_FOOD_AGE_DAYS = 90
 
-# Cache
+# Caches
 
-CACHE = {
+CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": get_env_variable(
