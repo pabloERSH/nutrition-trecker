@@ -263,7 +263,7 @@ class FoodDataBuilder:
             {
                 "key": "fats",
                 "title": "Жиры (г)",
-                "color": "lightcoral",
+                "color": "gold",
                 "level": float(fats_level) if fats_level else None,
             },
             {
@@ -275,7 +275,7 @@ class FoodDataBuilder:
             {
                 "key": "kcal",
                 "title": "Калории (ккал)",
-                "color": "gold",
+                "color": "lightcoral",
                 "level": float(kcal_level) if kcal_level else None,
             },
         ]
