@@ -36,7 +36,7 @@ class FoodSearcher:
             "RecipeDocument": "name.suggest",
         }
 
-        doc_type = document.__class__.__name__
+        doc_type = document.__name__
         suggest_field = field_mapping.get(doc_type)
 
         if not suggest_field:
@@ -99,7 +99,7 @@ class FoodSearcher:
             raise ValueError(
                 "Некорректное ограничение по количеству возвращаемых записей."
             )
-        if offset <= 0 or offset > 100:
+        if offset < 0 or offset > 100:
             raise ValueError("Некорректный свдиг по списку возвращаемых записей.")
         if not query or len(query) < 2:
             return {
@@ -110,7 +110,7 @@ class FoodSearcher:
                 "offset": offset,
             }
 
-        doc_type = document.__class__.__name__
+        doc_type = document.__name__
 
         # Определяем поля для поиска по умолчанию
         default_fields_mapping = {
