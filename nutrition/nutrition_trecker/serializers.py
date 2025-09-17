@@ -7,7 +7,16 @@ from common.custom.OwnedPrimaryKeyRelatedField import OwnedPrimaryKeyRelatedFiel
 class BaseFoodSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.BaseFood
-        fields = "__all__"
+        fields = [
+            "id",
+            "name",
+            "proteins",
+            "fats",
+            "carbohydrates",
+            "updated_at",
+            "created_at",
+            "kcal",
+        ]
         read_only_fields = fields
 
 
@@ -29,7 +38,18 @@ class UserFavoriteSerializer(serializers.ModelSerializer):
 class CustomFoodSerializer(ModelCleanMixin, serializers.ModelSerializer):
     class Meta:
         model = models.CustomFood
-        fields = "__all__"
+        fields = [
+            "id",
+            "user_id",
+            "custom_name",
+            "proteins",
+            "fats",
+            "carbohydrates",
+            "updated_at",
+            "created_at",
+            "kcal",
+        ]
+        read_only_fields = ["id", "user_id"]
 
 
 class RecipeSerializer(ModelCleanMixin, serializers.ModelSerializer):
