@@ -51,4 +51,5 @@ EXPOSE 8000
 WORKDIR /app/nutrition/
 
 # Команда запуска
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "nutrition.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
