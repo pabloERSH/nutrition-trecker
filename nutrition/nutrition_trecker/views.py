@@ -3,7 +3,7 @@ from nutrition_trecker import models, serializers
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from common.permissions import IsOwner403Permission
+from common.permissions.IsOwner403Permission import IsOwner403Permission
 from django.db.models import Prefetch
 from nutrition_trecker import documents
 from django.core.cache import cache
@@ -18,6 +18,7 @@ from common.utils.CacheHelper import CacheHelper
 class BaseFoodViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.BaseFoodSerializer
     document = documents.BaseFoodDocument
+    queryset = models.BaseFood.objects.all()
 
     def list(self, request, *args, **kwargs):
         """Кэшируем готовый список продуктов для BaseFood."""
@@ -90,10 +91,13 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
         user_id = request.user.telegram_id
         cache_key = CacheHelper.make_cache_key("customfood", "list", user_id)
         customfood = cache.get(cache_key)
-        if customfood is None:
+        if customfood:
+            return Response(customfood, status=status.HTTP_200_OK)
+        else:
             customfood = self.get_queryset()
-            cache.set(cache_key, customfood, 60 * 10)
-        return Response(customfood, status=status.HTTP_200_OK)
+            serializer = self.get_serializer(customfood, many=True)
+            cache.set(cache_key, serializer.data, 60 * 10)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"])
     def autocomplete(self, request):
