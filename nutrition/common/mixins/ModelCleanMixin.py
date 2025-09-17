@@ -9,6 +9,16 @@ class ModelCleanMixin:
         if hasattr(super(), "validate"):
             attrs = super().validate(attrs)
 
+        # Проверяем, есть ли поле user_id в модели
+        model = getattr(self.Meta, "model")
+        if hasattr(model, "_meta") and "user_id" in [
+            field.name for field in model._meta.fields
+        ]:
+            # Получаем user_id из request.user.telegram_id
+            request = self.context.get("request")
+            if request and hasattr(request.user, "telegram_id"):
+                attrs["user_id"] = request.user.telegram_id
+
         instance = getattr(self, "instance", None)
         if instance is None:
             instance = self.Meta.model(**attrs)
