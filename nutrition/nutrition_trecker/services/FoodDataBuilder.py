@@ -58,11 +58,19 @@ class FoodDataBuilder:
         end_date_str = request.query_params.get("end_date")
 
         if date_str:
-            date = parse_date(date_str)
-            return {"date": date, "start_date": None, "end_date": None}
+            parsed_date = parse_date(date_str)
+            if parsed_date is None:
+                raise ValidationError(
+                    {"detail": "Дата должна быть в формате YYYY-MM-DD"}
+                )
+            return {"date": parsed_date, "start_date": None, "end_date": None}
         elif start_date_str and end_date_str:
             start_date = parse_date(start_date_str)
             end_date = parse_date(end_date_str)
+            if start_date is None or end_date is None:
+                raise ValidationError(
+                    {"detail": "Дата должна быть в формате YYYY-MM-DD"}
+                )
             if start_date > end_date:
                 raise ValidationError(
                     {"detail": "Начальная дата должна быть раньше конечной"}
