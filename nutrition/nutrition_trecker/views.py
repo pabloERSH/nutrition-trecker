@@ -81,12 +81,6 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return models.CustomFood.objects.filter(user_id=self.request.user.telegram_id)
 
-    def perform_create(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
-
-    def perform_update(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
-
     def list(self, request, *args, **kwargs):
         user_id = request.user.telegram_id
         cache_key = CacheHelper.make_cache_key("customfood", "list", user_id)
@@ -151,12 +145,6 @@ class UserFavoriteViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return models.UserFavorite.objects.filter(user_id=self.request.user.telegram_id)
 
-    def perform_create(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
-
-    def perform_update(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
-
 
 class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.RecipeSerializer
@@ -173,12 +161,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return models.Recipe.objects.filter(
             user_id=self.request.user.telegram_id
         ).prefetch_related(ingredients_prefetch)
-
-    def perform_create(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
-
-    def perform_update(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
 
     def list(self, request, *args, **kwargs):
         user_id = request.user.telegram_id
@@ -296,12 +278,6 @@ class EatenFoodViewSet(viewsets.ModelViewSet):
             .select_related("base_food", "custom_food", "recipe_food")
             .prefetch_related(ingredients_prefetch)
         )
-
-    def perform_create(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
-
-    def perform_update(self, serializer):
-        serializer.save(user_id=self.request.user.telegram_id)
 
     def list(self, request, *args, **kwargs):
         dates = FoodDataBuilder.parse_date_range(request)
