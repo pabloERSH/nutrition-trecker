@@ -9,15 +9,21 @@ class ModelCleanMixin:
         if hasattr(super(), "validate"):
             attrs = super().validate(attrs)
 
-        # Проверяем, есть ли поле user_id в модели
+        # Автоматическое заполнение поля user_id
         model = getattr(self.Meta, "model")
         if hasattr(model, "_meta") and "user_id" in [
             field.name for field in model._meta.fields
         ]:
-            # Получаем user_id из request.user.telegram_id
             request = self.context.get("request")
             if request and hasattr(request.user, "telegram_id"):
                 attrs["user_id"] = request.user.telegram_id
+
+        # Автоматическое заполнение поля recipe для RecipeIngredient
+        if model.__name__ == "RecipeIngredient" and "recipe" not in attrs:
+            view = self.context.get("view")
+            if view and hasattr(view, "_get_recipe"):
+                recipe = view._get_recipe()
+                attrs["recipe"] = recipe
 
         instance = getattr(self, "instance", None)
         if instance is None:
