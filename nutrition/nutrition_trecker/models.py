@@ -1,6 +1,5 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, F
 from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
