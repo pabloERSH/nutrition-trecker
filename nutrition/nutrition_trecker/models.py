@@ -6,24 +6,7 @@ from django.db.models.functions import Now
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.conf import settings
-
-
-class TimeStampedModel(models.Model):
-    """Абстрактная модель с полями даты создания и обновления."""
-
-    created_at = models.DateTimeField(
-        _("created at"),
-        auto_now_add=True,
-        help_text=_("Date when the object was created"),
-    )
-    updated_at = models.DateTimeField(
-        _("updated at"),
-        auto_now=True,
-        help_text=_("Date when the object was last updated"),
-    )
-
-    class Meta:
-        abstract = True
+from common.models.TimeStampedModel import TimeStampedModel
 
 
 class BaseFood(TimeStampedModel):
