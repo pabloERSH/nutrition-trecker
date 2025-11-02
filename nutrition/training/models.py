@@ -83,6 +83,10 @@ class TrainingSession(TimeStampedModel):
         indexes = [
             models.Index(fields=["user_id", "date_time"]),
         ]
+        ordering = ["-date_time"]
+
+    def __str__(self):
+        return f"{self.name} - {self.date_time.strftime('%d.%m.%Y %H:%M')}"
 
 
 class BaseExercise(TimeStampedModel):
@@ -130,6 +134,9 @@ class BaseExercise(TimeStampedModel):
         verbose_name = "Базовое упражнение"
         verbose_name_plural = "Базовые упражнения"
 
+    def __str__(self):
+        return self.name
+
 
 class CustomExercise(TimeStampedModel):
     """Модель для хранения данных о пользовательских упражнениях."""
@@ -170,11 +177,16 @@ class CustomExercise(TimeStampedModel):
         verbose_name="Фото",
         upload_to="photos/custom_exercises/",
         help_text="Фотография упражнения",
+        null=True,
+        blank=True,
     )
 
     class Meta:
         verbose_name = "Кастомное упражнение"
         verbose_name_plural = "Кастомные упражнения"
+
+    def __str__(self):
+        return self.name
 
 
 class CompletedExercise(TimeStampedModel):
@@ -213,6 +225,13 @@ class CompletedExercise(TimeStampedModel):
                 name="completed_exercise_has_valid_source",
             ),
         ]
+        ordering = ["training_session", "id"]
+
+    def __str__(self):
+        exercise_name = (
+            self.base_exercise.name if self.base_exercise else self.custom_exercise.name
+        )
+        return f"{exercise_name} в {self.training_session}"
 
 
 class ExerciseSet(TimeStampedModel):
@@ -229,6 +248,8 @@ class ExerciseSet(TimeStampedModel):
         verbose_name="Повторения",
         validators=[MinValueValidator(1)],
         help_text="Количество повторений в подходе",
+        null=True,
+        blank=True,
     )
     weight = models.DecimalField(
         verbose_name="Вес (кг)",
@@ -265,3 +286,14 @@ class ExerciseSet(TimeStampedModel):
         default=1,
         help_text="Порядковый номер подхода (1, 2, 3...)",
     )
+
+    class Meta:
+        verbose_name = "Выполненный подход"
+        verbose_name_plural = "Выполненные подходы"
+        indexes = [
+            models.Index(fields=["completed_exercise"]),
+        ]
+        ordering = ["completed_exercise", "set_number"]
+
+    def __str__(self):
+        return f"Подход {self.set_number} - {self.completed_exercise}"
