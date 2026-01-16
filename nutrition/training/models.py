@@ -3,6 +3,11 @@ from common.models.TimeStampedModel import TimeStampedModel
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q
+from PIL import Image
+import os
+from io import BytesIO
+from django.core.files.base import ContentFile
+from django.contrib.postgres.indexes import GinIndex
 
 
 # Типы упражнений
@@ -30,6 +35,13 @@ MUSCLE_GROUP_CHOICES = [
     ("FOREARMS", "Предплечья"),
     ("FULL_BODY", "Все тело"),
     ("CORE", "Кор"),
+    ("TRAPEZIUS", "Трапеции"),
+    ("ADDUCTORS", "Приводящие мышцы"),
+    ("ABDUCTORS", "Отводящие мышцы"),
+    ("NECK", "Шея"),
+    ("LATS", "Широчайшие"),
+    ("OBLIQUES", "Косые мышцы"),
+    ("HIP_FLEXORS", "Сгибатели бедра"),
 ]
 
 # Оборудование
@@ -47,6 +59,7 @@ EQUIPMENT_CHOICES = [
     ("JUMP_ROPE", "Скакалка"),
     ("PULL_UP_BAR", "Турник"),
     ("DIP_BAR", "Брусья"),
+    ("BOX", "Короб"),
 ]
 
 
@@ -82,6 +95,11 @@ class TrainingSession(TimeStampedModel):
         verbose_name_plural = "Тренировки"
         indexes = [
             models.Index(fields=["user_id", "date_time"]),
+            GinIndex(
+                name="training_session_name_trgm_idx",
+                fields=["name", "description"],
+                opclasses=["gin_trgm_ops", "gin_trgm_ops"],
+            ),
         ]
         ordering = ["-date_time"]
 
@@ -118,6 +136,12 @@ class BaseExercise(TimeStampedModel):
         choices=EXERCISE_TYPE_CHOICES,
         help_text="Тип физической активности",
     )
+    equipment_type = models.CharField(
+        verbose_name="Оборудование",
+        max_length=20,
+        choices=EQUIPMENT_CHOICES,
+        help_text="Тип требуемого тренировочного оборудования",
+    )
     description = models.TextField(
         verbose_name="Описание техники",
         blank=True,
@@ -129,10 +153,69 @@ class BaseExercise(TimeStampedModel):
         upload_to="photos/base_exercises/",
         help_text="Фотография упражнения",
     )
+    image_thumbnail = models.ImageField(
+        upload_to="photos/base_exercises/thumbs/",
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.image and not self.image_thumbnail:
+            self.create_thumbnail()
+
+    def create_thumbnail(self, size=(150, 150)):
+        """Создает миниатюру изображения"""
+        if not self.image:
+            return
+
+        try:
+            img = Image.open(self.image.path)
+
+            if img.mode not in ("L", "RGB", "RGBA"):
+                img = img.convert("RGB")
+
+            img.thumbnail(size, Image.Resampling.LANCZOS)
+
+            thumb_io = BytesIO()
+            img.save(thumb_io, format="JPEG", quality=80, optimize=True)
+            thumb_io.seek(0)
+
+            filename = os.path.basename(self.image.name)
+            name, ext = os.path.splitext(filename)
+            thumb_filename = f"{name}_thumb{ext or '.jpg'}"
+
+            self.image_thumbnail.save(
+                thumb_filename, ContentFile(thumb_io.read()), save=False
+            )
+
+            super().save(update_fields=["image_thumbnail"])
+
+        except Exception as e:
+            print(f"Ошибка создания thumbnail: {e}")
+
+    def delete(self, *args, **kwargs):
+        """Удаляем файлы при удалении объекта"""
+        if self.image:
+            if os.path.isfile(self.image.path):
+                os.remove(self.image.path)
+        if self.image_thumbnail:
+            if os.path.isfile(self.image_thumbnail.path):
+                os.remove(self.image_thumbnail.path)
+        super().delete(*args, **kwargs)
 
     class Meta:
         verbose_name = "Базовое упражнение"
         verbose_name_plural = "Базовые упражнения"
+        indexes = [
+            GinIndex(
+                name="base_ex_name_trgm_idx",
+                fields=["name"],
+                opclasses=["gin_trgm_ops"],
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -141,6 +224,7 @@ class BaseExercise(TimeStampedModel):
 class CustomExercise(TimeStampedModel):
     """Модель для хранения данных о пользовательских упражнениях."""
 
+    user_id = models.BigIntegerField(db_index=True)
     name = models.CharField(
         verbose_name="Название",
         max_length=255,
@@ -167,23 +251,35 @@ class CustomExercise(TimeStampedModel):
         choices=EXERCISE_TYPE_CHOICES,
         help_text="Тип физической активности",
     )
+    equipment_type = models.CharField(
+        verbose_name="Оборудование",
+        max_length=20,
+        choices=EQUIPMENT_CHOICES,
+        help_text="Тип требуемого тренировочного оборудования",
+    )
     description = models.TextField(
         verbose_name="Описание техники",
         blank=True,
         null=True,
         help_text="Подробное описание техники выполнения",
     )
-    image = models.ImageField(
-        verbose_name="Фото",
-        upload_to="photos/custom_exercises/",
-        help_text="Фотография упражнения",
-        null=True,
-        blank=True,
-    )
 
     class Meta:
         verbose_name = "Кастомное упражнение"
         verbose_name_plural = "Кастомные упражнения"
+        indexes = [
+            models.Index(fields=["user_id"]),
+            GinIndex(
+                name="custom_ex_name_trgm_idx",
+                fields=["name"],
+                opclasses=["gin_trgm_ops"],
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "name"], name="unique_customexercise_per_user"
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -206,6 +302,12 @@ class CompletedExercise(TimeStampedModel):
     base_exercise = models.ForeignKey(
         BaseExercise, on_delete=models.PROTECT, null=True, blank=True
     )
+    comment = models.TextField(
+        verbose_name="Комментарий",
+        blank=True,
+        null=True,
+        help_text="Комментарий к выполненному упражнению",
+    )
 
     class Meta:
         verbose_name = "Выполненное упражнение"
@@ -216,16 +318,19 @@ class CompletedExercise(TimeStampedModel):
         constraints = [
             models.CheckConstraint(
                 condition=(
-                    (Q(custom_exercise__is_null=False) & Q(base_exercise__is_null=True))
-                    | (
-                        Q(custom_exercise__is_null=True)
-                        & Q(base_exercise__is_null=False)
-                    )
+                    (Q(custom_exercise__isnull=False) & Q(base_exercise__isnull=True))
+                    | (Q(custom_exercise__isnull=True) & Q(base_exercise__isnull=False))
                 ),
                 name="completed_exercise_has_valid_source",
             ),
         ]
         ordering = ["training_session", "id"]
+
+    def get_type(self):
+        if self.base_exercise:
+            return "base"
+        if self.custom_exercise:
+            return "custom"
 
     def __str__(self):
         exercise_name = (
@@ -237,10 +342,11 @@ class CompletedExercise(TimeStampedModel):
 class ExerciseSet(TimeStampedModel):
     """Модель для хранения данных о подходе в упражнении."""
 
+    user_id = models.BigIntegerField(db_index=True)
     completed_exercise = models.ForeignKey(
         CompletedExercise,
         db_index=True,
-        related_name="exercise_set",
+        related_name="sets",
         verbose_name="Подход",
         on_delete=models.CASCADE,
     )
@@ -280,12 +386,6 @@ class ExerciseSet(TimeStampedModel):
         default=60,
         help_text="Время отдыха после подхода в секундах",
     )
-    set_number = models.PositiveSmallIntegerField(
-        verbose_name="Номер подхода",
-        validators=[MinValueValidator(1)],
-        default=1,
-        help_text="Порядковый номер подхода (1, 2, 3...)",
-    )
 
     class Meta:
         verbose_name = "Выполненный подход"
@@ -293,7 +393,7 @@ class ExerciseSet(TimeStampedModel):
         indexes = [
             models.Index(fields=["completed_exercise"]),
         ]
-        ordering = ["completed_exercise", "set_number"]
+        ordering = ["completed_exercise", "created_at"]
 
     def __str__(self):
         return f"Подход {self.set_number} - {self.completed_exercise}"
