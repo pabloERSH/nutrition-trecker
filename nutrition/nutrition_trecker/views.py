@@ -21,18 +21,27 @@ class BaseFoodViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.BaseFood.objects.all()
 
     def list(self, request, *args, **kwargs):
-        """Кэшируем готовый список продуктов для BaseFood."""
-        cache_key = CacheHelper.make_cache_key("basefood", "list")
+        page_number = request.query_params.get("page", 1)
+        cache_key = CacheHelper.make_cache_key("basefood", f"list_page_{page_number}")
 
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data, status=status.HTTP_200_OK)
 
-        queryset = models.BaseFood.objects.all()
-        serializer = self.get_serializer(queryset, many=True)
-        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 7)  # 7 дней
+        queryset = self.filter_queryset(self.get_queryset())
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            paginated_response = self.get_paginated_response(serializer.data)
+
+            cache.set(cache_key, paginated_response.data, 60 * 60 * 24 * 7)
+            return paginated_response
+
+        serializer = self.get_serializer(queryset, many=True)
+        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 7)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def autocomplete(self, request):
@@ -81,17 +90,36 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return models.CustomFood.objects.filter(user_id=self.request.user.telegram_id)
 
+    def perform_create(self, serializer):
+        serializer.save(user_id=self.request.user.telegram_id)
+
+    def perform_update(self, serializer):
+        serializer.save(user_id=self.request.user.telegram_id)
+
     def list(self, request, *args, **kwargs):
         user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key("customfood", "list", user_id)
+        page_number = request.query_params.get("page", 1)
+        cache_key = CacheHelper.make_cache_key(
+            "customfood", f"list_page_{page_number}", user_id
+        )
         customfood = cache.get(cache_key)
         if customfood:
             return Response(customfood, status=status.HTTP_200_OK)
         else:
-            customfood = self.get_queryset()
-            serializer = self.get_serializer(customfood, many=True)
+            queryset = self.filter_queryset(self.get_queryset())
+
+            page = self.paginate_queryset(queryset)
+
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                paginated_response = self.get_paginated_response(serializer.data)
+
+                cache.set(cache_key, paginated_response.data, 60 * 10)
+                return paginated_response
+
+            serializer = self.get_serializer(queryset, many=True)
             cache.set(cache_key, serializer.data, 60 * 10)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def autocomplete(self, request):
