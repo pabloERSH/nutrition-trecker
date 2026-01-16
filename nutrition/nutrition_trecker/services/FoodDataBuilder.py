@@ -75,6 +75,11 @@ class FoodDataBuilder:
                 raise ValidationError(
                     {"detail": "Начальная дата должна быть раньше конечной"}
                 )
+            delta = end_date - start_date
+            if delta.days > 31:
+                raise ValidationError(
+                    {"detail": "Диапазон дат не может превышать 31 день"}
+                )
             return {"date": None, "start_date": start_date, "end_date": end_date}
         else:
             return {"date": None, "start_date": None, "end_date": None}
