@@ -3,49 +3,44 @@ from django.dispatch import receiver
 import logging
 from .models import EatenFood, BaseFood, CustomFood, Recipe, RecipeIngredient
 from common.utils.CacheHelper import CacheHelper
-from django.core.cache import cache
 
 
 logger = logging.getLogger("nutrition")
 
 
-@receiver(post_save, sender=BaseFood)
-@receiver(post_delete, sender=BaseFood)
+@receiver([post_save, post_delete], sender=BaseFood)
 def invalidate_basefood_cache(sender, instance, **kwargs):
-    cache_key = CacheHelper.make_cache_key("basefood", "list")
-    cache.delete(cache_key)
-    logger.info(f"Cache delete for BaseFood(id={instance.id})")
+    CacheHelper.bump_cache_version("basefood")
+    logger.info("BaseFood version bumped (global)")
 
 
-@receiver(post_save, sender=CustomFood)
-@receiver(post_delete, sender=CustomFood)
+@receiver([post_save, post_delete], sender=CustomFood)
 def invalidate_customfood_cache(sender, instance, **kwargs):
     CacheHelper.bump_cache_version("customfood", instance.user_id)
-    logger.info(f"Cache version bumped for CustomFood(id={instance.id})")
+    logger.info(f"Cache version bumped for CustomFood(user_id={instance.user_id})")
 
 
-@receiver(post_save, sender=Recipe)
-@receiver(post_delete, sender=Recipe)
+@receiver([post_save, post_delete], sender=Recipe)
 def invalidate_recipe_cache(sender, instance, **kwargs):
     CacheHelper.bump_cache_version("recipe", instance.user_id)
-    logger.info(f"Cache version bumped for Recipe(id={instance.id})")
+    logger.info(f"Cache version bumped for Recipe(user_id={instance.user_id})")
 
 
-@receiver(post_save, sender=RecipeIngredient)
-@receiver(post_delete, sender=RecipeIngredient)
+@receiver([post_save, post_delete], sender=RecipeIngredient)
 def invalidate_recipe_ingredient_cache(sender, instance, **kwargs):
     CacheHelper.bump_cache_version(
         f"recipe_ingredient:recipe_id:{instance.recipe}", instance.user_id
     )
     CacheHelper.bump_cache_version("recipe", instance.user_id)
-    logger.info(f"Cache version bumped for RecipeIngredient(id={instance.id})")
+    logger.info(
+        f"Cache version bumped for RecipeIngredient(user_id={instance.user_id})"
+    )
 
 
-@receiver(post_save, sender=EatenFood)
-@receiver(post_delete, sender=EatenFood)
+@receiver([post_save, post_delete], sender=EatenFood)
 def invalidate_eatenfood_cache(sender, instance, **kwargs):
     CacheHelper.bump_cache_version("eatenfood", instance.user_id)
-    logger.info(f"Cache version bumped for EatenFood(id={instance.id})")
+    logger.info(f"Cache version bumped for EatenFood(user_id={instance.user_id})")
 
 
 @receiver(pre_delete, sender=BaseFood)
@@ -123,7 +118,7 @@ def update_recipe_ingredients_on_base_food_delete(sender, instance, **kwargs):
 
 @receiver(pre_delete, sender=CustomFood)
 def update_recipe_ingredients_on_custom_food_delete(sender, instance, **kwargs):
-    """Сохранение данных перед удалёнием блюда из BaseFood в связанных с ним записях в RecipeIngredient"""
+    """Сохранение данных перед удалёнием блюда из CustomFood в связанных с ним записях в RecipeIngredient"""
     rows = RecipeIngredient.objects.filter(custom_food=instance)
     if rows.exists():
         rows.update(
