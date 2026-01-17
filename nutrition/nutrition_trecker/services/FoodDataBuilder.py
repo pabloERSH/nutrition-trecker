@@ -158,7 +158,7 @@ class FoodDataBuilder:
             for key, value in total_nutrition.items():
                 total_nutrition[key] = round(value, 1)
 
-            results[day] = total_nutrition
+            results[day.isoformat()] = total_nutrition
 
         return results
 
@@ -264,7 +264,7 @@ class FoodDataBuilder:
         kcal_level = request.query_params.get("kcal_level", None)
 
         sorted_dates = sorted(days_data.keys())
-        dates_str = [d.strftime("%d.%m") for d in sorted_dates]
+        dates_str = [date.fromisoformat(d).strftime("%d.%m") for d in sorted_dates]
 
         nutrients = [
             {
