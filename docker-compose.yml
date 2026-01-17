@@ -77,6 +77,19 @@ services:
       retries: 3
     mem_limit: 60m
 
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8002:80"
+    volumes:
+      - ./nutrition/static:/static
+      - ./nutrition/media:/media
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - nutrition
+    networks:
+      - nutrition-network
+
 volumes:
   esdata01:
   redis_data:

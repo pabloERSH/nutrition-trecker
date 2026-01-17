@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from training import models
 from common.custom.OwnedPrimaryKeyRelatedField import OwnedPrimaryKeyRelatedField
+from django.conf import settings
 
 
 class ExerciseImageMixin:
-    fallback_path = "/photos/fallbacks/exercise_fallback.jpg"
+    fallback_path = settings.MEDIA_URL + "photos/fallbacks/exercise_fallback.jpg"
 
     def _abs(self, path):
         request = self.context.get("request")
