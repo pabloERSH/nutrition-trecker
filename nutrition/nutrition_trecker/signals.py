@@ -10,13 +10,13 @@ logger = logging.getLogger("nutrition")
 
 @receiver([post_save, post_delete], sender=BaseFood)
 def invalidate_basefood_cache(sender, instance, **kwargs):
-    CacheHelper.bump_cache_version("basefood")
+    CacheHelper.bump_cache_version("base_food")
     logger.info("BaseFood version bumped (global)")
 
 
 @receiver([post_save, post_delete], sender=CustomFood)
 def invalidate_customfood_cache(sender, instance, **kwargs):
-    CacheHelper.bump_cache_version("customfood", instance.user_id)
+    CacheHelper.bump_cache_version("custom_food", instance.user_id)
     logger.info(f"Cache version bumped for CustomFood(user_id={instance.user_id})")
 
 
@@ -28,9 +28,7 @@ def invalidate_recipe_cache(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=RecipeIngredient)
 def invalidate_recipe_ingredient_cache(sender, instance, **kwargs):
-    CacheHelper.bump_cache_version(
-        f"recipe_ingredient:recipe_id:{instance.recipe}", instance.user_id
-    )
+    CacheHelper.bump_cache_version("recipe_ingredient", instance.user_id)
     CacheHelper.bump_cache_version("recipe", instance.user_id)
     logger.info(
         f"Cache version bumped for RecipeIngredient(user_id={instance.user_id})"
@@ -39,7 +37,7 @@ def invalidate_recipe_ingredient_cache(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=EatenFood)
 def invalidate_eatenfood_cache(sender, instance, **kwargs):
-    CacheHelper.bump_cache_version("eatenfood", instance.user_id)
+    CacheHelper.bump_cache_version("eaten_food", instance.user_id)
     logger.info(f"Cache version bumped for EatenFood(user_id={instance.user_id})")
 
 

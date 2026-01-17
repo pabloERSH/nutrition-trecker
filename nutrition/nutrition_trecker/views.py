@@ -5,87 +5,47 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from common.permissions.IsOwner403Permission import IsOwner403Permission
 from django.db.models import Prefetch
-from nutrition_trecker import documents
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from django.views.decorators.vary import vary_on_headers
 from nutrition_trecker.services.FoodDataBuilder import FoodDataBuilder
-from nutrition_trecker.services.FoodSearcher import FoodSearcher
+from common.filters.FuzzySearchFilter import FuzzySearchFilter
 from common.utils.CacheHelper import CacheHelper
+from common.decorators.cache_response import cache_response
+from common.mixins.AutocompleteMixin import AutocompleteMixin
 
 
-class BaseFoodViewSet(viewsets.ReadOnlyModelViewSet):
+class BaseFoodViewSet(AutocompleteMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.BaseFoodSerializer
-    document = documents.BaseFoodDocument
     queryset = models.BaseFood.objects.all()
 
+    filter_backends = [FuzzySearchFilter]
+    search_fields = ["name"]
+
+    @cache_response(
+        entity="base_food",
+        ttl=60 * 60,
+    )
     def list(self, request, *args, **kwargs):
-        page_number = request.query_params.get("page", 1)
-        cache_key = CacheHelper.make_cache_key("basefood", f"list_page_{page_number}")
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         queryset = self.filter_queryset(self.get_queryset())
-
         page = self.paginate_queryset(queryset)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            paginated_response = self.get_paginated_response(serializer.data)
-
-            cache.set(cache_key, paginated_response.data, 60 * 60 * 24 * 7)
-            return paginated_response
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 7)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"])
-    def autocomplete(self, request):
-        """Endpoint для автокомплита при поиске base-food, возвращает список возможных дополнений с доп. информацией из elasticsearch."""
-        query = request.query_params.get("q")
-        limit = request.query_params.get("limit", 10)
-        search_results = FoodSearcher.autocomplete(self.document, query, limit=limit)
-        return Response(search_results, status=status.HTTP_200_OK)
 
-    @method_decorator(cache_page(60 * 5))  # 5 минут
-    @action(detail=False, methods=["get"])
-    def search(self, request):
-        """Endpoint для полнотекстового поиска base-food. Возвращает полную информацию о продуктах, подошедших под поиск."""
-        query = request.query_params.get("q")
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 20))
-        offset = (page - 1) * limit
-        search_results = FoodSearcher.search(
-            self.document, query, limit=limit, offset=offset
-        )
-
-        food_ids = search_results["ids"]
-        foods = self.get_queryset().filter(id__in=food_ids)
-        food_map = {food.id: food for food in foods}
-        ordered_foods = [food_map[id] for id in food_ids if id in food_map]
-
-        serializer = self.get_serializer(ordered_foods, many=True)
-
-        return Response(
-            {
-                "total": search_results["total"],
-                "took_ms": search_results["took_ms"],
-                "limit": limit,
-                "page": page,
-                "results": serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class CustomFoodViewSet(viewsets.ModelViewSet):
+class CustomFoodViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     serializer_class = serializers.CustomFoodSerializer
     permission_classes = [IsOwner403Permission]
-    document = documents.CustomFoodDocument
+
+    filter_backends = [FuzzySearchFilter]
+    search_fields = ["custom_name"]
+    autocomplete_search_fields = ["custom_name"]
 
     def get_queryset(self):
         return models.CustomFood.objects.filter(user_id=self.request.user.telegram_id)
@@ -96,73 +56,17 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(user_id=self.request.user.telegram_id)
 
+    @cache_response(entity="custom_food", ttl=60 * 30, per_user=True)
     def list(self, request, *args, **kwargs):
-        user_id = request.user.telegram_id
-        page_number = request.query_params.get("page", 1)
-        cache_key = CacheHelper.make_cache_key(
-            "customfood", f"list_page_{page_number}", user_id
-        )
-        customfood = cache.get(cache_key)
-        if customfood:
-            return Response(customfood, status=status.HTTP_200_OK)
-        else:
-            queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
 
-            page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-            if page is not None:
-                serializer = self.get_serializer(page, many=True)
-                paginated_response = self.get_paginated_response(serializer.data)
-
-                cache.set(cache_key, paginated_response.data, 60 * 10)
-                return paginated_response
-
-            serializer = self.get_serializer(queryset, many=True)
-            cache.set(cache_key, serializer.data, 60 * 10)
-            return Response(serializer.data)
-
-    @action(detail=False, methods=["get"])
-    def autocomplete(self, request):
-        """Endpoint для автокомплита при поиске custom-food, возвращает список возможных дополнений с доп. информацией из elasticsearch."""
-        query = request.query_params.get("q")
-        limit = request.query_params.get("limit", 10)
-        search_results = FoodSearcher.autocomplete(
-            self.document, query, limit=limit, user_id=self.request.user.telegram_id
-        )
-        return Response(search_results, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=["get"])
-    def search(self, request):
-        """Endpoint для полнотекстового поиска custom-food. Возвращает полную информацию о продуктах, подошедших под поиск."""
-        query = request.query_params.get("q")
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 20))
-        offset = (page - 1) * limit
-        search_results = FoodSearcher.search(
-            self.document,
-            query,
-            limit=limit,
-            offset=offset,
-            user_id=self.request.user.telegram_id,
-        )
-
-        food_ids = search_results["ids"]
-        foods = self.get_queryset().filter(id__in=food_ids)
-        food_map = {food.id: food for food in foods}
-        ordered_foods = [food_map[id] for id in food_ids if id in food_map]
-
-        serializer = self.get_serializer(ordered_foods, many=True)
-
-        return Response(
-            {
-                "total": search_results["total"],
-                "took_ms": search_results["took_ms"],
-                "limit": limit,
-                "page": page,
-                "results": serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class UserFavoriteViewSet(viewsets.ModelViewSet):
@@ -174,10 +78,13 @@ class UserFavoriteViewSet(viewsets.ModelViewSet):
         return models.UserFavorite.objects.filter(user_id=self.request.user.telegram_id)
 
 
-class RecipeViewSet(viewsets.ModelViewSet):
+class RecipeViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     serializer_class = serializers.RecipeSerializer
     permission_classes = [IsOwner403Permission]
-    document = documents.RecipeDocument
+
+    filter_backends = [FuzzySearchFilter]
+    search_fields = ["name", "description"]
+    autocomplete_search_fields = ["name"]
 
     def get_queryset(self):
         ingredients_prefetch = Prefetch(
@@ -190,58 +97,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
             user_id=self.request.user.telegram_id
         ).prefetch_related(ingredients_prefetch)
 
+    @cache_response(
+        entity="recipe",
+        ttl=60 * 5,
+        per_user=True,
+    )
     def list(self, request, *args, **kwargs):
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key("recipe", "list", user_id)
-        recipes = cache.get(cache_key)
-        if recipes is None:
-            qs = self.get_queryset()
-            recipes = FoodDataBuilder.recipe_list_data_build(qs)
-            cache.set(cache_key, recipes, 60 * 5)
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            recipes = FoodDataBuilder.recipe_list_data_build(page)
+            return self.get_paginated_response(recipes)
+
+        # если пагинация выключена
+        recipes = FoodDataBuilder.recipe_list_data_build(queryset)
         return Response(recipes, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=["get"])
-    def autocomplete(self, request):
-        """Endpoint для автокомплита при поиске recipe, возвращает список возможных дополнений с доп. информацией из elasticsearch."""
-        query = request.query_params.get("q")
-        limit = request.query_params.get("limit", 10)
-        search_results = FoodSearcher.autocomplete(
-            self.document, query, limit=limit, user_id=self.request.user.telegram_id
-        )
-        return Response(search_results, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=["get"])
-    def search(self, request):
-        """Endpoint для полнотекстового поиска recipe. Возвращает полную информацию о продуктах, подошедших под поиск."""
-        query = request.query_params.get("q")
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 20))
-        offset = (page - 1) * limit
-        search_results = FoodSearcher.search(
-            self.document,
-            query,
-            limit=limit,
-            offset=offset,
-            user_id=self.request.user.telegram_id,
-        )
-
-        recipes_ids = search_results["ids"]
-        recipes = self.get_queryset().filter(id__in=recipes_ids)
-        recipes_map = {recipe.id: recipe for recipe in recipes}
-        ordered_recipes = [recipes_map[id] for id in recipes_ids if id in recipes_map]
-
-        res = FoodDataBuilder.recipe_list_data_build(ordered_recipes)
-
-        return Response(
-            {
-                "total": search_results["total"],
-                "took_ms": search_results["took_ms"],
-                "limit": limit,
-                "page": page,
-                "results": res,
-            },
-            status=status.HTTP_200_OK,
-        )
 
 
 class RecipeIngredientViewSet(viewsets.ModelViewSet):
@@ -269,24 +140,20 @@ class RecipeIngredientViewSet(viewsets.ModelViewSet):
             recipe=self._get_recipe(), user_id=self.request.user.telegram_id
         )
 
+    @cache_response(
+        entity="recipe_ingredient",
+        ttl=60 * 5,
+        per_user=True,
+    )
     def list(self, request, *args, **kwargs):
-        recipe_pk = self.kwargs.get("recipe_pk")
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key(
-            f"recipe_ingredient:recipe_id:{recipe_pk}", "list", user_id
-        )
-        ingredients = cache.get(cache_key)
-        if ingredients is None:
-            recipe = self._get_recipe()
-            ingredients = {
-                "recipe_name": recipe.name,
-                "ingredients": recipe.get_ingredients_with_details(),
-            }
-            cache.set(cache_key, ingredients, 60 * 5)
-        return Response(
-            ingredients,
-            status=status.HTTP_200_OK,
-        )
+        recipe = self._get_recipe()
+
+        data = {
+            "recipe_name": recipe.name,
+            "ingredients": recipe.get_ingredients_with_details(),
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class EatenFoodViewSet(viewsets.ModelViewSet):
@@ -317,7 +184,7 @@ class EatenFoodViewSet(viewsets.ModelViewSet):
             )
         elif dates["start_date"] and dates["end_date"]:
             cache_key = CacheHelper.make_cache_key(
-                "eatenfood",
+                "eaten_food",
                 f"list:dates:{dates['start_date'].isoformat()}:{dates['end_date'].isoformat()}",
                 user_id,
             )
