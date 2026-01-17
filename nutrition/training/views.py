@@ -27,7 +27,7 @@ class BaseExerciseViewSet(AutocompleteMixin, viewsets.ReadOnlyModelViewSet):
 
     @cache_response(
         entity="base_exercise",
-        ttl=60 * 60 * 24 * 7,
+        ttl=60 * 60,
     )
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -71,7 +71,7 @@ class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
 
     @cache_response(
         entity="custom_exercise",
-        ttl=60 * 60 * 24,
+        ttl=60 * 30,
     )
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
