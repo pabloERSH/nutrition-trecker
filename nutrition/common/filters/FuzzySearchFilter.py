@@ -37,4 +37,4 @@ class FuzzySearchFilter(BaseFilterBackend):
 
         queryset = queryset.filter(filter_condition | Q(similarity__gt=threshold))
 
-        return queryset.order_by("-similarity")
+        return queryset.order_by("-similarity", "id")

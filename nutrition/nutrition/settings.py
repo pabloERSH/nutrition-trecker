@@ -49,7 +49,6 @@ ALLOWED_HOSTS = get_env_variable("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 # Application definition
 
 INSTALLED_APPS = [
-    "django_elasticsearch_dsl",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -108,21 +107,6 @@ DATABASES = {
     }
 }
 
-ELASTICSEARCH_DSL = {
-    "default": {
-        "hosts": [
-            get_env_variable("ELASTICSEARCH_HOST", default="http://127.0.0.1:9200")
-        ],
-        "http_auth": (
-            ("elastic", get_env_variable("ELASTICSEARCH_PASSWORD"))
-            if get_env_variable("ELASTICSEARCH_SECURE", "false").lower() == "true"
-            else None
-        ),
-        "verify_certs": get_env_variable("ELASTICSEARCH_SECURE", default=False).lower()
-        == "true",
-    }
-}
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -157,7 +141,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "static"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -260,9 +248,3 @@ CACHES = {
         },
     }
 }
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "static"
