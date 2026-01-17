@@ -9,7 +9,7 @@ from common.permissions.IsOwner403Permission import IsOwner403Permission
 from common.mixins.AutocompleteMixin import AutocompleteMixin
 from django.core.cache import cache
 from training.services.TrainingDataBuilder import TrainingDataBuilder
-from common.utils.CacheHelper import CacheHelper
+from common.decorators.cache_response import cache_response
 
 
 class BaseExerciseViewSet(AutocompleteMixin, viewsets.ReadOnlyModelViewSet):
@@ -25,44 +25,29 @@ class BaseExerciseViewSet(AutocompleteMixin, viewsets.ReadOnlyModelViewSet):
             return serializers.BaseExerciseDetailSerializer
         return serializers.BaseExerciseListSerializer
 
+    @cache_response(
+        entity="base_exercise",
+        ttl=60 * 60 * 24 * 7,
+    )
     def list(self, request, *args, **kwargs):
-        cache_key = CacheHelper.make_cache_key(
-            "base_exercises", f"list:{request.get_full_path()}"
-        )
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         queryset = self.filter_queryset(self.get_queryset())
-
         page = self.paginate_queryset(queryset)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            paginated_response = self.get_paginated_response(serializer.data)
-
-            cache.set(cache_key, paginated_response.data, 60 * 60 * 24 * 7)  # 7 дней
-            return paginated_response
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 7)  # 7 дней
         return Response(serializer.data)
 
+    @cache_response(
+        entity="base_exercise",
+        ttl=60 * 60 * 24 * 7,
+    )
     def retrieve(self, request, *args, **kwargs):
-        instance_id = kwargs.get("pk")
-
-        cache_key = CacheHelper.make_cache_key("base_exercise", f"detail_{instance_id}")
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 7)  # 7 дней
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
 
 class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
@@ -84,47 +69,29 @@ class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(user_id=self.request.user.telegram_id)
 
+    @cache_response(
+        entity="custom_exercise",
+        ttl=60 * 60 * 24,
+    )
     def list(self, request, *args, **kwargs):
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key(
-            "custom_exercises", f"list:{request.get_full_path()}", user_id
-        )
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         queryset = self.filter_queryset(self.get_queryset())
-
         page = self.paginate_queryset(queryset)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            paginated_response = self.get_paginated_response(serializer.data)
-
-            cache.set(cache_key, paginated_response.data, 60 * 60 * 24)  # 1 день
-            return paginated_response
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        cache.set(cache_key, serializer.data, 60 * 60 * 24)  # 1 день
         return Response(serializer.data)
 
+    @cache_response(
+        entity="custom_exercise",
+        ttl=60 * 60 * 24 * 2,
+    )
     def retrieve(self, request, *args, **kwargs):
-        instance_id = kwargs.get("pk")
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key(
-            "custom_exercise", f"detail_{instance_id}", user_id
-        )
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        cache.set(cache_key, serializer.data, 60 * 60 * 24 * 2)  # 2 дней
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
 
 class TrainingSessionViewSet(AutocompleteMixin, viewsets.ModelViewSet):
@@ -145,36 +112,25 @@ class TrainingSessionViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(user_id=self.request.user.telegram_id)
 
+    @cache_response(
+        entity="training_session",
+        ttl=60 * 30,
+        per_user=True,
+    )
     def list(self, request, *args, **kwargs):
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key(
-            "training_sessions", f"list:{request.get_full_path()}", user_id
-        )
-        training_sessions = cache.get(cache_key)
-        if training_sessions:
-            return Response(training_sessions, status=status.HTTP_200_OK)
-        else:
-            training_sessions = self.filter_queryset(self.get_queryset())
-            serializer = self.get_serializer(training_sessions, many=True)
-            cache.set(cache_key, serializer.data, 60 * 30)  # 30 минут
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @cache_response(
+        entity="training_session",
+        ttl=60 * 30,
+        per_user=True,
+    )
     def retrieve(self, request, *args, **kwargs):
-        instance_id = kwargs.get("pk")
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key(
-            "training_session", f"detail_{instance_id}", user_id
-        )
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         instance = self.get_object()
-        training_session_data = TrainingDataBuilder.get_training_session_info(instance)
-        cache.set(cache_key, training_session_data, 60 * 30)  # 30 минут
-
-        return Response(training_session_data, status=status.HTTP_200_OK)
+        data = TrainingDataBuilder.get_training_session_info(instance)
+        return Response(data)
 
 
 class CompletedExerciseViewSet(viewsets.ModelViewSet):
@@ -218,39 +174,24 @@ class CompletedExerciseViewSet(viewsets.ModelViewSet):
             user_id=self.request.user.telegram_id,
         )
 
+    @cache_response(
+        entity="completed_exercise",
+        ttl=60 * 30,
+        per_user=True,
+    )
     def list(self, request, *args, **kwargs):
-        user_id = request.user.telegram_id
-        training_session_pk = self.kwargs.get("session_pk")
-        cache_key = CacheHelper.make_cache_key(
-            f"completed_exercises:training_session_id:{training_session_pk}",
-            "list",
-            user_id,
-        )
-        completed_exercises = cache.get(cache_key)
-        if completed_exercises:
-            return Response(completed_exercises, status=status.HTTP_200_OK)
-        else:
-            completed_exercises = self.get_queryset()
-            serializer = self.get_serializer(completed_exercises, many=True)
-            cache.set(cache_key, serializer.data, 60 * 30)  # 30 минут
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @cache_response(
+        entity="completed_exercise",
+        ttl=60 * 30,
+    )
     def retrieve(self, request, *args, **kwargs):
-        instance_id = kwargs.get("pk")
-        user_id = request.user.telegram_id
-        cache_key = CacheHelper.make_cache_key(
-            "completed_exercise", f"detail_{instance_id}", user_id
-        )
-
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data, status=status.HTTP_200_OK)
-
         instance = self.get_object()
-        completed_exericse = self.get_serializer(instance)
-        cache.set(cache_key, completed_exericse.data, 60 * 30)  # 30 минут
-
-        return Response(completed_exericse.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class ExerciseSetViewSet(viewsets.ModelViewSet):
