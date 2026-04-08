@@ -1,21 +1,16 @@
 from rest_framework import serializers
 from training import models
 from common.custom.OwnedPrimaryKeyRelatedField import OwnedPrimaryKeyRelatedField
-from django.conf import settings
 
 
 class ExerciseImageMixin:
-    fallback_path = settings.MEDIA_URL + "photos/fallbacks/exercise_fallback.jpg"
-
     def _abs(self, path):
         request = self.context.get("request")
         return request.build_absolute_uri(path) if request else path
 
     def get_thumbnail_url(self, obj):
         """
-        Универсальный метод:
-        - BaseExercise → thumbnail / image
-        - CustomExercise → fallback
+        BaseExercise → thumbnail / image
         """
         # BaseExercise имеет image_thumbnail
         if hasattr(obj, "image_thumbnail"):
@@ -24,10 +19,7 @@ class ExerciseImageMixin:
             if obj.image:
                 return self._abs(obj.image.url)
 
-        return self._abs(self.fallback_path)
-
-    def get_fallback_url(self):
-        return self._abs(self.fallback_path)
+        return None
 
 
 class ExerciseCommonMixin:
@@ -84,8 +76,7 @@ class CompletedExerciseMixin:
             )
             return serializer.data["thumbnail_url"]
 
-        fallback_path = "/photos/fallbacks/exercise_fallback.jpg"
-        return request.build_absolute_uri(fallback_path) if request else fallback_path
+        return None
 
     def get_source_data(self, obj):
         type = obj.get_type()
@@ -153,7 +144,7 @@ class BaseExerciseDetailSerializer(
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
-        return self.get_fallback_url()
+        return None
 
     class Meta:
         model = models.BaseExercise
