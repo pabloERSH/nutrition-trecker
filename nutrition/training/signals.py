@@ -6,9 +6,9 @@ from training.models import (
     CustomExercise,
     CompletedExercise,
     TrainingSession,
+    ExerciseSet,
 )
 from common.utils.CacheHelper import CacheHelper
-
 
 logger = logging.getLogger("nutrition")
 
@@ -42,3 +42,10 @@ def invalidate_completed_exercise_cache(sender, instance, **kwargs):
     logger.info(
         f"CompletedExercise & TrainingSession version bumped for user {user_id}"
     )
+
+
+@receiver([post_save, post_delete], sender=ExerciseSet)
+def invalidate_exercise_set_cache(sender, instance, **kwargs):
+    user_id = instance.user_id
+    CacheHelper.bump_cache_version("exercise_set", user_id)
+    logger.info(f"ExerciseSet version bumped for user {user_id}")
