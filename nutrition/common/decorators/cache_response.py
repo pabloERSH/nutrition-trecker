@@ -32,6 +32,9 @@ def cache_response(*, entity: str, ttl: int, per_user=False):
                 search_query = request.query_params.get("search")
                 if search_query:
                     filters["search"] = [search_query]
+                date_query = request.query_params.get("date")
+                if date_query:
+                    filters["date"] = [date_query]
 
                 cache_key = builder.build(
                     scope="list",

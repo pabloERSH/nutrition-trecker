@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from training import models, serializers
 from django_filters.rest_framework import DjangoFilterBackend
 from common.filters.FuzzySearchFilter import FuzzySearchFilter
+from common.filters.OneDateFilter import OneDateFilter
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from common.permissions.IsOwner403Permission import IsOwner403Permission
@@ -72,6 +73,7 @@ class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     @cache_response(
         entity="custom_exercise",
         ttl=60 * 30,
+        per_user=True,
     )
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -87,6 +89,7 @@ class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     @cache_response(
         entity="custom_exercise",
         ttl=60 * 60 * 24 * 2,
+        per_user=True,
     )
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -97,7 +100,7 @@ class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
 class TrainingSessionViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     serializer_class = serializers.TrainingSessionSerializer
     permission_classes = [IsOwner403Permission]
-    filter_backends = [FuzzySearchFilter]
+    filter_backends = [FuzzySearchFilter, OneDateFilter]
     search_fields = ["name", "description"]
     autocomplete_search_fields = ["name"]
 
@@ -184,10 +187,7 @@ class CompletedExerciseViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @cache_response(
-        entity="completed_exercise",
-        ttl=60 * 30,
-    )
+    @cache_response(entity="completed_exercise", ttl=60 * 30, per_user=True)
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -220,6 +220,14 @@ class ExerciseSetViewSet(viewsets.ModelViewSet):
             completed_exercise=self._get_completed_exercise(),
             user_id=self.request.user.telegram_id,
         )
+
+    @cache_response(entity="exercise_set", ttl=60 * 30, per_user=True)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @cache_response(entity="exercise_set", ttl=60 * 30, per_user=True)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 class TagsView(APIView):
