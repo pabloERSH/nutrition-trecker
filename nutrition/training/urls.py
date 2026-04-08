@@ -3,7 +3,6 @@ from rest_framework_nested import routers as nested_routers
 from training import views
 from django.urls import path, include
 
-
 router = routers.DefaultRouter()
 router.register(r"base-exercises", views.BaseExerciseViewSet, basename="base-exercises")
 router.register(

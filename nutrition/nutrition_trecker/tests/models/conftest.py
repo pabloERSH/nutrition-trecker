@@ -1,7 +1,6 @@
 import pytest
 from nutrition_trecker.models import BaseFood, CustomFood, Recipe, RecipeIngredient
 
-
 # Fixtures
 
 

@@ -9,7 +9,6 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from django.contrib.postgres.indexes import GinIndex
 
-
 # Типы упражнений
 EXERCISE_TYPE_CHOICES = [
     ("STRENGTH", "Силовое"),
@@ -101,7 +100,7 @@ class TrainingSession(TimeStampedModel):
                 opclasses=["gin_trgm_ops", "gin_trgm_ops"],
             ),
         ]
-        ordering = ["-date_time"]
+        ordering = ["date_time"]
 
     def __str__(self):
         return f"{self.name} - {self.date_time.strftime('%d.%m.%Y %H:%M')}"
@@ -216,6 +215,7 @@ class BaseExercise(TimeStampedModel):
                 opclasses=["gin_trgm_ops"],
             ),
         ]
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
@@ -280,6 +280,7 @@ class CustomExercise(TimeStampedModel):
                 fields=["user_id", "name"], name="unique_customexercise_per_user"
             ),
         ]
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
@@ -363,7 +364,7 @@ class ExerciseSet(TimeStampedModel):
         decimal_places=2,
         blank=True,
         null=True,
-        validators=[MinValueValidator(0.1)],
+        validators=[MinValueValidator(0)],
         help_text="Вес снаряда в килограммах",
     )
     duration_seconds = models.PositiveIntegerField(

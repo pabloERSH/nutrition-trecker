@@ -4,7 +4,6 @@ import logging
 from .models import EatenFood, BaseFood, CustomFood, Recipe, RecipeIngredient
 from common.utils.CacheHelper import CacheHelper
 
-
 logger = logging.getLogger("nutrition")
 
 

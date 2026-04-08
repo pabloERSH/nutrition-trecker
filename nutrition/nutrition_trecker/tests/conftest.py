@@ -4,7 +4,6 @@ from django.db import connection
 import logging
 from django.conf import settings
 
-
 logger = logging.getLogger("tests")
 
 
