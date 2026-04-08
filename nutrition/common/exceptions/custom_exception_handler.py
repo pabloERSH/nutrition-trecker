@@ -12,16 +12,13 @@ from rest_framework.exceptions import (
     PermissionDenied,
     ValidationError,
 )
-from elasticsearch import ConnectionError, NotFoundError, RequestError
 from jwt import ExpiredSignatureError, InvalidTokenError
 
 logger = logging.getLogger("nutrition")
 
-# Критические ошибки для email-уведомлений (учитывая модели, сигналы, Elasticsearch и JWT)
+# Критические ошибки для email-уведомлений (учитывая модели, сигналы, JWT)
 CRITICAL_EXCEPTIONS = (
     ConnectionError,
-    NotFoundError,
-    RequestError,  # Ошибки elasticsearch
     ExpiredSignatureError,
     InvalidTokenError,  # JWT-ошибки из JWTAuthTgUser.py
     IntegrityError,
@@ -105,23 +102,14 @@ def custom_exception_handler(exc, context):
             details = (
                 details
                 if isinstance(details, dict)
-                else "Некорректные данные. Проверьте значения БЖУ, даты, источники данных или права доступа."
+                else "Некорректные данные. Проверьте правильность введённых данных или права доступа."
             )
         elif isinstance(exc, IntegrityError):
             error_code = "integrity_error"
-            details = "Нарушение уникальности или ограничений данных (например, дубль имени продукта)."
+            details = "Нарушение уникальности или ограничений данных."
         elif isinstance(exc, DatabaseError) or isinstance(exc, OperationalError):
             error_code = "database_error"
             details = "Ошибка базы данных. Пожалуйста, попробуйте позже."
-        elif isinstance(exc, ConnectionError):
-            error_code = "search_service_unavailable"
-            details = "Сервис поиска временно недоступен."
-        elif isinstance(exc, NotFoundError):
-            error_code = "resource_not_found"
-            details = "Запрашиваемый ресурс не найден."
-        elif isinstance(exc, RequestError):
-            error_code = "invalid_search_query"
-            details = "Неверный запрос к поисковому сервису."
 
         response.data = {"error": str(exc), "details": details, "code": error_code}
 
