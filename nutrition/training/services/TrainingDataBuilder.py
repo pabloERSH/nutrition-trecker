@@ -116,7 +116,6 @@ class TrainingDataBuilder:
             "date": training_session.date_time.date().isoformat(),
             "time": training_session.date_time.time().strftime("%H:%M"),
             "duration_minutes": training_session.duration,
-            "duration_hours": f"{training_session.duration // 60}:{training_session.duration % 60:02d}",
             "created_at": (
                 training_session.created_at.isoformat()
                 if training_session.created_at
