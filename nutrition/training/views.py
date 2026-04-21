@@ -100,9 +100,7 @@ class CustomExerciseViewSet(AutocompleteMixin, viewsets.ModelViewSet):
 class TrainingSessionViewSet(AutocompleteMixin, viewsets.ModelViewSet):
     serializer_class = serializers.TrainingSessionSerializer
     permission_classes = [IsOwner403Permission]
-    filter_backends = [FuzzySearchFilter, OneDateFilter]
-    search_fields = ["name", "description"]
-    autocomplete_search_fields = ["name"]
+    filter_backends = [OneDateFilter]
 
     def get_queryset(self):
         return models.TrainingSession.objects.filter(
