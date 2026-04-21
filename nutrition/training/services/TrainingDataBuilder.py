@@ -128,44 +128,37 @@ class TrainingDataBuilder:
             ),
             # Статистика тренировки
             "statistics": {
-                "counts": {
+                "workload": {  # Общая нагрузка (количественные показатели)
                     "exercises": stats["exercises_count"],
                     "sets": stats["sets_count"],
-                    "repetitions": stats["total_reps"],
-                },
-                "volume": {
+                    "reps": stats["total_reps"],
                     "tonnage": float(stats["total_tonnage"]),
                     "tonnage_display": f"{stats['total_tonnage']:.1f} кг",
+                },
+                "performance": {  # Показатели интенсивности и весов
                     "max_weight": float(stats["max_weight"]),
                     "max_weight_display": f"{stats['max_weight']:.1f} кг",
+                    "avg_reps_per_set": round(float(avg_reps_per_set), 1),
                     "avg_tonnage_per_set": round(float(avg_tonnage_per_set), 1),
+                    "intensity_value": round(float(workout_intensity), 1),
+                    "intensity_display": f"{workout_intensity:.1f} кг/мин",
                 },
-                "intensity": {
-                    "value": round(float(workout_intensity), 1),
-                    "display": f"{workout_intensity:.1f} кг/мин",
-                },
-                "cardio": {
-                    "total_duration_seconds": stats["total_duration_seconds"],
-                    "total_duration_display": cls._format_seconds(
+                "duration_distance": {  # Те самые метрики времени и пути
+                    "duration_seconds": stats["total_duration_seconds"],
+                    "duration_display": cls._format_seconds(
                         stats["total_duration_seconds"]
                     ),
-                    "total_distance_meters": float(stats["total_distance_meters"]),
-                    "total_distance_display": f"{stats['total_distance_meters']:.1f} м",
+                    "distance_meters": float(stats["total_distance_meters"]),
+                    "distance_display": f"{stats['total_distance_meters']:.1f} м",
                 },
                 "rest": {
-                    "total_rest_seconds": stats["total_rest_seconds"],
-                    "total_rest_display": cls._format_seconds(
-                        stats["total_rest_seconds"]
-                    ),
-                    "avg_rest_per_set": cls._format_seconds(
+                    "total_seconds": stats["total_rest_seconds"],
+                    "total_display": cls._format_seconds(stats["total_rest_seconds"]),
+                    "avg_per_set": cls._format_seconds(
                         stats["total_rest_seconds"] // stats["sets_count"]
                         if stats["sets_count"] > 0
                         else 0
                     ),
-                },
-                "averages": {
-                    "reps_per_set": round(float(avg_reps_per_set), 1),
-                    "tonnage_per_set": round(float(avg_tonnage_per_set), 1),
                 },
             },
         }
