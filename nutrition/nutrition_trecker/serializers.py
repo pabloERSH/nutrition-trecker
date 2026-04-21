@@ -86,7 +86,7 @@ class RecipeIngredientSerializer(ModelCleanMixin, serializers.ModelSerializer):
 
     def get_source_data(self, obj):
         type = obj.get_type()
-        data = None
+        data = {"type": type}
 
         match type:
             case "base":
@@ -113,6 +113,7 @@ class RecipeIngredientSerializer(ModelCleanMixin, serializers.ModelSerializer):
                 }
             case "manual":
                 data = {
+                    "id": obj.id,
                     "name": obj.name,
                     "per_100g": {
                         "proteins": obj.proteins,
@@ -210,6 +211,7 @@ class EatenFoodSerializer(ModelCleanMixin, serializers.ModelSerializer):
                 }
             case "manual":
                 data = {
+                    "id": obj.id,
                     "name": obj.name,
                     "per_100g": {
                         "proteins": obj.proteins,
