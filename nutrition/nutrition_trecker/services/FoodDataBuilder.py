@@ -164,7 +164,7 @@ class FoodDataBuilder:
 
     @classmethod
     def eaten_food_list_data_build(
-        cls, queryset: QuerySet[models.EatenFood], request: Request
+        cls, queryset: QuerySet[models.EatenFood], dates: dict
     ) -> Union[
         Dict[str, Union[str, List[EatenFoodInfo], NutritionInfo]],
         Dict[date, NutritionInfo],
@@ -178,7 +178,6 @@ class FoodDataBuilder:
 
         response = dict()
 
-        dates = cls.parse_date_range(request)
         date_flag = False
 
         if dates["date"]:
