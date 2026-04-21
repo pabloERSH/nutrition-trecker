@@ -42,6 +42,7 @@ class BaseFood(TimeStampedModel):
                 name="basefood_nutrition_sum_valid",
             )
         ]
+        ordering = ["created_at"]
 
     def clean(self):
         if self.proteins + self.fats + self.carbohydrates > 100:
@@ -124,6 +125,7 @@ class CustomFood(TimeStampedModel):
                 name="customfood_nutrition_sum_valid",
             ),
         ]
+        ordering = ["created_at"]
 
     def clean(self):
         if (self.proteins + self.fats + self.carbohydrates) > 100:
@@ -154,6 +156,7 @@ class Recipe(TimeStampedModel):
     class Meta:
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
+        ordering = ["created_at"]
 
     def calculate_nutrition(self) -> dict:
         """
@@ -227,6 +230,7 @@ class Recipe(TimeStampedModel):
         Пример вывода:
         [
             {
+                'id': 123,
                 'type': 'base',
                 'base_food_id': 12,
                 'name': 'Куриная грудка',
@@ -244,6 +248,7 @@ class Recipe(TimeStampedModel):
             nutrition = ing.get_nutrition()
 
             ingredient_data = {
+                "id": ing.id,
                 "type": ing.get_type(),
                 "name": ing.get_name(),
                 "weight_grams": ing.weight_grams,
@@ -438,6 +443,7 @@ class RecipeIngredient(TimeStampedModel):
                 condition=Q(base_food__isnull=True, custom_food__isnull=True),
             ),
         ]
+        ordering = ["created_at"]
 
     def calculate_total_kcal(self) -> float:
         """Расчёт калорий для указанного веса."""
@@ -614,6 +620,7 @@ class EatenFood(TimeStampedModel):
                 name="eatenfood_date_valid",
             ),
         ]
+        ordering = ["created_at"]
 
     def clean(self):
         # Проверяем, что дата приёма пищи выбрана правильно
