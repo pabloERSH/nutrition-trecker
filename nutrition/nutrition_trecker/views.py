@@ -184,7 +184,7 @@ class EatenFoodViewSet(viewsets.ModelViewSet):
             )
         elif dates["start_date"] and dates["end_date"]:
             cache_key = CacheHelper.make_cache_key(
-                "eaten_food",
+                "eatenfood",
                 f"list:dates:{dates['start_date'].isoformat()}:{dates['end_date'].isoformat()}",
                 user_id,
             )
@@ -197,7 +197,7 @@ class EatenFoodViewSet(viewsets.ModelViewSet):
         eatenfood = cache.get(cache_key)
         if eatenfood is None:
             qs = self.get_queryset()
-            eatenfood = FoodDataBuilder.eaten_food_list_data_build(qs, request)
+            eatenfood = FoodDataBuilder.eaten_food_list_data_build(qs, dates)
             cache.set(cache_key, eatenfood, 60 * 5)
 
         return Response(eatenfood, status=status.HTTP_200_OK)
@@ -205,7 +205,7 @@ class EatenFoodViewSet(viewsets.ModelViewSet):
     @method_decorator(cache_page(60 * 3))
     @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"])
-    def nutrition_stats(self, request):
+    def nutrition_charts(self, request):
         qs = self.get_queryset()
 
         stats_graphs = FoodDataBuilder.eaten_food_stats_graph_draw(qs, request)

@@ -36,7 +36,7 @@ def invalidate_recipe_ingredient_cache(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=EatenFood)
 def invalidate_eatenfood_cache(sender, instance, **kwargs):
-    CacheHelper.bump_cache_version("eaten_food", instance.user_id)
+    CacheHelper.bump_cache_version("eatenfood", instance.user_id)
     logger.info(f"Cache version bumped for EatenFood(user_id={instance.user_id})")
 
 
