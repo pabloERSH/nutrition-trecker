@@ -24,6 +24,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("nutrition_trecker.urls")),
     path("api/v1/", include("training.urls")),
+    path("api/v1/", include("profiles.urls")),
 ]
 
 if settings.DEBUG:

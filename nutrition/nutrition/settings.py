@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "django_filters",
     "nutrition_trecker.apps.NutritionTreckerConfig",
     "training.apps.TrainingConfig",
+    "profiles.apps.ProfilesConfig",
 ]
 
 MIDDLEWARE = [
