@@ -239,9 +239,12 @@ class FoodDataBuilder:
         """
         Возвращает 4 графика в формате base64 с демонстрацией суммарного количества
         каждого нутриента в приёмах пищи за каждый день из данного диапазона.
-        Если в request кроме дат будут указаны желаемые уровни по суммам нутриентов,
-        на графиках они будут отображены пунктирной линией (например proteints_level: 150).
+        Целевые уровни (БЖУ и ккал) берутся из профиля текущего пользователя.
         """
+        # Локальный импорт, чтобы избежать циклических зависимостей
+        # Убедитесь, что путь до приложения profiles указан верно для вашего проекта!
+        from profiles.models import UserProfile
+
         dates = cls.parse_date_range(request)
         if not dates["start_date"] or not dates["end_date"]:
             raise ValidationError(
@@ -257,14 +260,36 @@ class FoodDataBuilder:
                 "Нет данных для построения графиков в указанном диапазоне дат."
             )
 
-        proteins_level = request.query_params.get("proteins_level", None)
-        fats_level = request.query_params.get("fats_level", None)
-        carbohydrates_level = request.query_params.get("carbohydrates_level", None)
-        kcal_level = request.query_params.get("kcal_level", None)
+        # 1. Получаем профиль пользователя
+        proteins_level = None
+        fats_level = None
+        carbohydrates_level = None
+        kcal_level = None
+
+        try:
+            # Получаем профиль по telegram_id текущего пользователя
+            profile = UserProfile.objects.get(user_id=request.user.telegram_id)
+
+            # Используем значения только если они больше 0
+            proteins_level = (
+                profile.target_proteins if profile.target_proteins > 0 else None
+            )
+            fats_level = profile.target_fats if profile.target_fats > 0 else None
+            carbohydrates_level = (
+                profile.target_carbs if profile.target_carbs > 0 else None
+            )
+            kcal_level = (
+                profile.target_calories if profile.target_calories > 0 else None
+            )
+
+        except (UserProfile.DoesNotExist, AttributeError):
+            # Если профиля нет (или у юзера нет telegram_id), графики построятся без красных линий
+            pass
 
         sorted_dates = sorted(days_data.keys())
         dates_str = [date.fromisoformat(d).strftime("%d.%m") for d in sorted_dates]
 
+        # 2. Подставляем полученные значения в настройки графиков
         nutrients = [
             {
                 "key": "proteins",
