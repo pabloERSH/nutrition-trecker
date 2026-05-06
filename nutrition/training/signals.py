@@ -47,5 +47,6 @@ def invalidate_completed_exercise_cache(sender, instance, **kwargs):
 @receiver([post_save, post_delete], sender=ExerciseSet)
 def invalidate_exercise_set_cache(sender, instance, **kwargs):
     user_id = instance.user_id
+    CacheHelper.bump_cache_version("training_session", user_id)
     CacheHelper.bump_cache_version("exercise_set", user_id)
-    logger.info(f"ExerciseSet version bumped for user {user_id}")
+    logger.info(f"ExerciseSet & TrainingSession version bumped for user {user_id}")
