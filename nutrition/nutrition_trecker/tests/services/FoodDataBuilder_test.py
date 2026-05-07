@@ -90,11 +90,11 @@ class TestFoodDataBuilder:
         )
 
         assert len(res) == 7
-        assert isinstance(res[start_date], dict)
-        assert res[start_date]["proteins"] == 32.4
-        assert res[start_date]["fats"] == 7.5
-        assert res[start_date]["carbohydrates"] == 14.4
-        assert res[start_date]["kcal"] == 255.6
+        assert isinstance(res[start_date.isoformat()], dict)
+        assert res[start_date.isoformat()]["proteins"] == 32.4
+        assert res[start_date.isoformat()]["fats"] == 7.5
+        assert res[start_date.isoformat()]["carbohydrates"] == 14.4
+        assert res[start_date.isoformat()]["kcal"] == 255.6
 
     def test_eaten_food_range_days_total_list_build_invalid_dates(self, dates):
         with pytest.raises(ValidationError):
@@ -114,18 +114,13 @@ class TestFoodDataBuilder:
         mock_parse_date,
         mock_eaten_food_nutritions_list_build,
     ):
-        drf_request = Request(factory.get(f"/?date={dates[0]}"))
         qs = EatenFood.objects.filter(user_id=1)
 
         with patch(
-            "nutrition_trecker.services.FoodDataBuilder.FoodDataBuilder.parse_date_range",
-            return_value=mock_parse_date,
+            "nutrition_trecker.services.FoodDataBuilder.FoodDataBuilder._eaten_food_nutritions_list_build",
+            return_value=mock_eaten_food_nutritions_list_build,
         ):
-            with patch(
-                "nutrition_trecker.services.FoodDataBuilder.FoodDataBuilder._eaten_food_nutritions_list_build",
-                return_value=mock_eaten_food_nutritions_list_build,
-            ):
-                response = FoodDataBuilder.eaten_food_list_data_build(qs, drf_request)
+            response = FoodDataBuilder.eaten_food_list_data_build(qs, mock_parse_date)
 
         assert response["eaten"] == mock_eaten_food_nutritions_list_build[0]
         assert response["total_nutrition"] == mock_eaten_food_nutritions_list_build[1]
@@ -138,22 +133,15 @@ class TestFoodDataBuilder:
         mock_parse_date_range,
         mock_eaten_food_range_days_total_list_build,
     ):
-        start_date = dates[-1].isoformat()
-        end_date = dates[0].isoformat()
-        drf_request = Request(
-            factory.get(f"/?start_date={start_date}&end_date={end_date}")
-        )
         qs = EatenFood.objects.filter(user_id=1)
 
         with patch(
-            "nutrition_trecker.services.FoodDataBuilder.FoodDataBuilder.parse_date_range",
-            return_value=mock_parse_date_range,
+            "nutrition_trecker.services.FoodDataBuilder.FoodDataBuilder._eaten_food_range_days_total_list_build",
+            return_value=mock_eaten_food_range_days_total_list_build,
         ):
-            with patch(
-                "nutrition_trecker.services.FoodDataBuilder.FoodDataBuilder._eaten_food_range_days_total_list_build",
-                return_value=mock_eaten_food_range_days_total_list_build,
-            ):
-                response = FoodDataBuilder.eaten_food_list_data_build(qs, drf_request)
+            response = FoodDataBuilder.eaten_food_list_data_build(
+                qs, mock_parse_date_range
+            )
 
         assert len(response["days"]) == 2
         assert (
@@ -166,19 +154,17 @@ class TestFoodDataBuilder:
         )
 
     def test_eaten_food_list_data_build_no_dates(self, factory):
-        drf_request = Request(factory.get(f"/?qwerty={12345}"))
         qs = EatenFood.objects.filter(user_id=1)
 
-        with pytest.raises(ValidationError):
-            FoodDataBuilder.eaten_food_list_data_build(qs, drf_request)
+        with pytest.raises(KeyError):
+            FoodDataBuilder.eaten_food_list_data_build(qs, {})
 
     def test_eaten_food_list_data_build_no_rows_in_qs(
-        self, factory, active_user_food, dates
+        self, factory, active_user_food, dates, mock_parse_date
     ):
         with pytest.raises(ValidationError):
-            drf_request = Request(factory.get(f"/?date={dates[0]}"))
             qs = EatenFood.objects.filter(user_id=2)
-            FoodDataBuilder.eaten_food_list_data_build(qs, drf_request)
+            FoodDataBuilder.eaten_food_list_data_build(qs, mock_parse_date)
 
     def test_recipe_list_data_build_success(self, recipe_with_ingredients):
         qs = Recipe.objects.filter(user_id=1)
