@@ -2,9 +2,7 @@ import pytest
 import os
 from django.db import connection
 import logging
-from pathlib import Path
 from django.conf import settings
-from dotenv import load_dotenv
 
 logger = logging.getLogger("tests")
 
@@ -13,33 +11,12 @@ logger = logging.getLogger("tests")
 
 
 def pytest_configure(config):
-    """Хук для логирования начала сессии и настройки тестовой БД"""
+    """Хук для логирования начала сессии"""
     logger.info("============= Test session starts =============")
-
-    # Загружаем .env.test, если он существует
-    env_file = Path(settings.BASE_DIR) / ".env.test"
-    if env_file.exists():
-        load_dotenv(dotenv_path=env_file, override=True)
-        logger.info(f"Loaded test environment from {env_file}")
-    else:
-        logger.warning(f"Test environment file {env_file} not found, using defaults")
-
-    # Переопределяем настройки БД
-    settings.DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB", "test_db"),
-            "USER": os.getenv("POSTGRES_USER", "postgres"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-            "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-            "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        }
-    }
-
     db = settings.DATABASES["default"]
     logger.info(
         f"Test DB: engine={db['ENGINE'].split('.')[-1]}, "
-        f"main_db={db['NAME']}, test_db={db.get('TEST', {}).get('NAME', 'auto-generated')}"
+        f"main_db={db['NAME']}, test_db={db['TEST'].get('NAME')}"
     )
 
 
