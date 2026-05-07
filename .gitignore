@@ -11,7 +11,7 @@ wheels/
 
 # Environment variables
 .env
-.env.prod
+.env.test
 
 # IDE
 .idea/
