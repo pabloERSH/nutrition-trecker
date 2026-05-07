@@ -1,4 +1,4 @@
-from .settings import *  # noqa: F401
+from .settings import *  # noqa: F403
 import os
 
 # Переопределяем БД для тестов
