@@ -70,7 +70,6 @@ def weekly_report_view(request):
     """
 
     # 1. Получаем telegram_id из аутентифицированного пользователя
-    #    (объект AuthenticatedTgUser — см. common.authentication.JWTAuthTgUser)
     telegram_id = request.user.telegram_id
 
     # 2. Парсим и валидируем параметры запроса
@@ -90,29 +89,39 @@ def weekly_report_view(request):
     service = WeeklyReportService(config)
     report = service.build_report()
 
-    # 5. Проверяем качество данных
-    data_quality = report["report_meta"]["data_quality"]
+    # 5. Проверяем качество данных (адаптировано под новую структуру)
+    nutrition = report.get("nutrition", {})
+    training = report.get("training", {})
 
-    if not data_quality["sufficient_data"]:
+    nutrition_days = nutrition.get("days_logged", 0)
+    training_days = training.get("training_days", 0)
+
+    # Проверяем достаточность данных (минимум 3 дня питания)
+    if nutrition_days < 3:
         raise ValidationError(
             {
                 "detail": "Недостаточно данных для анализа",
-                "data_quality": data_quality,
+                "data_quality": {
+                    "nutrition_days_count": nutrition_days,
+                    "training_days_count": training_days,
+                    "sufficient_data": False,
+                },
                 "min_required_days": 3,
                 "hint": (
-                    f"У вас {data_quality['nutrition_days_count']} дн. с питанием. "
-                    f"Добавьте ещё {3 - data_quality['nutrition_days_count']} дн. записей."
+                    f"У вас {nutrition_days} дн. с питанием. "
+                    f"Добавьте ещё {3 - nutrition_days} дн. записей."
                 ),
             }
         )
 
     # 6. Логируем
+    period = report.get("period", {})
     logger.info(
         "Weekly report generated | "
         f"user_id={telegram_id} | "
-        f"period={report['report_meta']['period_start']}..{report['report_meta']['period_end']} | "
-        f"nutrition_days={data_quality['nutrition_days_count']} | "
-        f"training_days={data_quality['training_days_count']}",
+        f"period={period.get('start', '?')}..{period.get('end', '?')} | "
+        f"nutrition_days={nutrition_days} | "
+        f"training_days={training_days}",
     )
 
     return Response(report)
